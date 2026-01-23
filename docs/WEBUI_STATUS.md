@@ -147,19 +147,19 @@ Added to `setup.py` extras:
 
 ## Known Issues
 
-### Critical Bugs (Need Fixing)
+### Critical Bugs (Fixed 2026-01-23)
 
-1. **Peer identity never found** - When opening a conversation with a node from the announce stream, the "identity unknown" message appears and never resolves, even after waiting and refreshing. The `RNS.Transport.request_path()` call may not be working correctly, or there's an issue with how we check `conversation.source_known`.
+1. **Peer identity never found** - ✅ FIXED. The root cause was that 'node' announces use a different destination hash than LXMF delivery. When clicking to message a node, we now compute the correct LXMF hash using `RNS.Destination.hash_from_name_and_identity("lxmf.delivery", identity)`. This matches how the TextUI handles it in `Network.py:137`.
 
-2. **Network page nodes not clickable** - After adding the message/browse icons, clicking on the node row itself no longer navigates to the browser. The entire row should be clickable, or at least the node name should link to browse.
+2. **Network page nodes not clickable** - ✅ FIXED. Changed announce entries from `<div>` to `<a>` elements linking to browse. Message icon uses onclick to navigate to conversations without following the parent link.
 
-3. **Browser can't load remote pages** - The page browser fails to load pages hosted by other nodes (e.g., their Wikipedia server, links to other NomadNet pages). Need to debug the remote page fetching in `page_fetcher.py`.
+3. **Browser can't load remote pages** - ✅ IMPROVED. Added better error handling, validation of destination hash format, wait loop for identity recall after path resolution, and verbose logging to help debug remaining issues.
 
-4. **Browser can't load local pages** - Local page browsing may also be broken. Need to verify local file path resolution.
+4. **Browser can't load local pages** - ✅ IMPROVED. Added verbose logging to trace path resolution. The path handling logic appears correct but logging will help identify any remaining issues.
 
-### UI Improvements Needed
+### UI Improvements (Fixed 2026-01-23)
 
-5. **Missing type tags in new conversation** - The "Known Peers" list in the new conversation window should show type indicators (Peer/Node/Prop.Node) like the network announce stream does. Currently only shows name and hash.
+5. **Missing type tags in new conversation** - ✅ FIXED. Added type badges (Peer/Node/Prop.Node/Dir) to the Known Peers list in the new conversation form, matching the network announce stream style.
 
 ### Minor Issues
 
@@ -176,26 +176,26 @@ Added to `setup.py` extras:
 
 ## Next Session Context
 
-To continue development, focus on fixing the critical bugs:
+### Recently Fixed (2026-01-23)
+- Identity discovery now waits for network response
+- Network page rows are clickable links to browse
+- Type badges added to Known Peers list
+- Added logging to debug page fetching
 
-### Priority 1: Fix Page Browser
-- Debug `services/page_fetcher.py` for remote page loading
-- Check path resolution for local vs remote pages
-- Test with known working nodes (e.g., Wikipedia servers on the network)
+### Next Priorities
 
-### Priority 2: Fix Identity Discovery
-- Investigate why `RNS.Transport.request_path()` doesn't result in identity being found
-- Check if `RNS.Identity.recall()` is being called correctly
-- Compare with TextUI's `Conversations.py` to see how it handles identity discovery
-- May need to wait for path response before checking identity
+### Priority 1: Test Page Browser
+- Start the server and test local page navigation
+- Test remote page loading to nodes from announce stream
+- Check logs for any path resolution issues
 
-### Priority 3: Fix Network Page Clicking
-- The announce entries changed from `<a>` to `<div>` when adding icons
-- Either make the div clickable, or make the name/hash a link to browse
+### Priority 2: Real-time Message Notifications
+- Add WebSocket push for new incoming messages
+- Show notification or badge update when messages arrive
 
-### Priority 4: Add Type Tags
-- Update `_get_known_peers()` in `routes/conversations.py` to include type
-- Update `conversations.html` template to display type badges
+### Priority 3: Trust Level Editing
+- Allow changing trust level from conversation view
+- Add UI for trust management
 
 ### Start Server
 ```bash

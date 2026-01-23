@@ -31,9 +31,11 @@ class NetworkDisplay:
                     except:
                         pass
 
+                hash_hex = source_hash.hex() if isinstance(source_hash, bytes) else source_hash
+
                 announces.append({
                     "timestamp": timestamp,
-                    "hash": source_hash.hex() if isinstance(source_hash, bytes) else source_hash,
+                    "hash": hash_hex,
                     "name": display_name,
                     "type": announce_type
                 })
@@ -54,12 +56,14 @@ class ConversationsDisplay:
         self.manager.broadcast_sync("conversations_updated", {})
 
         # Also send unread count
-        if hasattr(self.app, 'conversations'):
-            try:
-                unread = sum(1 for c in self.app.conversations() if c.unread)
-                self.manager.broadcast_sync("unread_count", {"count": unread})
-            except:
-                pass
+        try:
+            from nomadnet.Conversation import Conversation
+            conv_list = Conversation.conversation_list(self.app)
+            # conv_list is [(hash, name, trust, sort_name, unread), ...]
+            unread = sum(1 for c in conv_list if c[4])  # index 4 is unread flag
+            self.manager.broadcast_sync("unread_count", {"count": unread})
+        except Exception:
+            pass
 
 
 class SubDisplays:

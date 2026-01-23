@@ -426,17 +426,24 @@ class MicronParser:
     def _convert_link_url(self, url: str) -> str:
         """Convert Micron link URL to web URL"""
         if url.startswith('::'):
-            # External URL
+            # External URL with :: prefix
             return url[2:]
+        elif url.startswith('https://') or url.startswith('http://'):
+            # External URL without :: prefix
+            return url
+        elif url.startswith('lxmf@'):
+            # LXMF address - link to conversations
+            lxmf_hash = url[5:]
+            return f'/conversations/{lxmf_hash}'
         elif url.startswith(':/'):
-            # Local page on same node
+            # Local page on same node (:/path format)
             path = url[2:]
             if self.destination:
                 return f'/browse/{self.destination}/{path}'
             else:
                 return f'/browse/local/{path}'
         elif url.startswith(':'):
-            # Remote node
+            # Remote node with : prefix
             # Format: :hash:/path or :hash:path
             rest = url[1:]
             if ':/' in rest:
@@ -447,6 +454,10 @@ class MicronParser:
                 return f'/browse/{dest}/{path}'
             else:
                 return f'/browse/{rest}/'
+        elif ':/page/' in url or ':/file/' in url:
+            # Remote node without : prefix (hash:/page/... format)
+            dest, path = url.split(':/', 1)
+            return f'/browse/{dest}/{path}'
         else:
             # Relative path
             return f'/browse/{self.destination}/{url}' if self.destination else f'/browse/local/{url}'

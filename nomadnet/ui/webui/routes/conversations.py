@@ -51,23 +51,35 @@ def _build_conversation_list(nomad_app, selected_hash=None):
 
 def _load_messages(nomad_app, conv_hash):
     """Load messages from a conversation"""
+    import time
     import RNS
     from nomadnet.Conversation import Conversation
 
     messages = []
-    conversation = Conversation(conv_hash, nomad_app)
 
-    # Check if we can send (identity known) - use conversation's own check
-    can_send = conversation.source_known
-    RNS.log(f"WebUI: Loading conversation {conv_hash[:16]}... source_known={can_send}, messages={len(conversation.messages)}", RNS.LOG_NOTICE)
+    # First try to recall identity directly
+    source_hash_bytes = bytes.fromhex(conv_hash)
+    identity = RNS.Identity.recall(source_hash_bytes)
 
-    # If identity not known, request it from the network
-    if not can_send:
+    # If no identity, check if we have a path and try requesting
+    if not identity:
         try:
-            RNS.Transport.request_path(bytes.fromhex(conv_hash))
-            RNS.log(f"WebUI: Requested path for {conv_hash[:16]}...", RNS.LOG_NOTICE)
+            RNS.Transport.request_path(source_hash_bytes)
+            # Wait up to 3 seconds for identity to become available
+            wait_until = time.time() + 3.0
+            while time.time() < wait_until:
+                identity = RNS.Identity.recall(source_hash_bytes)
+                if identity:
+                    break
+                time.sleep(0.2)
         except Exception:
             pass
+
+    # Create the conversation - use initiator=True to create directory if needed
+    conversation = Conversation(conv_hash, nomad_app, initiator=True)
+
+    # Check if we can send (identity known)
+    can_send = conversation.source_known
 
     for msg in conversation.messages:
         try:
@@ -155,6 +167,7 @@ def _get_known_peers(nomad_app):
             for entry in nomad_app.directory.announce_stream[:50]:
                 timestamp, source_hash, app_data, announce_type = entry
                 hash_hex = source_hash.hex() if isinstance(source_hash, bytes) else source_hash
+
                 if hash_hex not in seen_hashes:
                     seen_hashes.add(hash_hex)
                     display_name = None
@@ -283,7 +296,7 @@ async def conversation_detail(request: Request, conv_hash: str):
             if os.path.isfile(unread_path):
                 os.unlink(unread_path)
 
-    except Exception as e:
+    except Exception:
         pass
 
     return templates.TemplateResponse("conversations.html", {

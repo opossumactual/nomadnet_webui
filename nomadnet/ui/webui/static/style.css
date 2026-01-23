@@ -605,6 +605,33 @@ footer {
     background: var(--bg-lighter);
 }
 
+.peer-type {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    margin-right: 0.5rem;
+}
+
+.peer-type-peer {
+    background: #2a4a2a;
+    color: #8f8;
+}
+
+.peer-type-node {
+    background: #2a2a4a;
+    color: #88f;
+}
+
+.peer-type-pn {
+    background: #4a3a2a;
+    color: #fa8;
+}
+
+.peer-type-directory {
+    background: #3a3a3a;
+    color: #aaa;
+}
+
 .peer-name {
     flex: 1;
 }
@@ -774,15 +801,21 @@ footer {
     color: var(--fg-dim);
 }
 
+.announce-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
 .announce-action {
     color: var(--accent);
     padding: 0.25rem 0.5rem;
     text-decoration: none;
     border-radius: 3px;
+    cursor: pointer;
 }
 
 .announce-action:hover {
-    background: var(--bg-lighter);
+    background: var(--bg);
 }
 
 .no-data {

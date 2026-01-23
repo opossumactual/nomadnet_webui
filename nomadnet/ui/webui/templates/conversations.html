@@ -44,6 +44,13 @@
                     {% for peer in known_peers %}
                     <li>
                         <a href="/conversations/{{ peer.hash }}">
+                            <span class="peer-type peer-type-{{ peer.type }}">
+                                {% if peer.type == 'peer' %}Peer
+                                {% elif peer.type == 'node' %}Node
+                                {% elif peer.type == 'pn' %}Prop.Node
+                                {% elif peer.type == 'directory' %}Dir
+                                {% else %}{{ peer.type }}{% endif %}
+                            </span>
                             <span class="peer-name">{{ peer.name }}</span>
                             <code class="peer-hash">{{ peer.hash[:16] }}...</code>
                         </a>

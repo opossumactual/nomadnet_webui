@@ -35,7 +35,7 @@
             <div id="announce-stream" class="announce-stream">
                 {% if announces %}
                 {% for announce in announces %}
-                <div class="announce-entry announce-{{ announce.type }}">
+                <a href="/browse/{{ announce.hash }}" class="announce-entry announce-{{ announce.type }}">
                     <span class="announce-time">{{ announce.timestamp | timestamp_format }}</span>
                     <span class="announce-type">
                         {% if announce.type == 'peer' %}Peer
@@ -45,9 +45,11 @@
                     </span>
                     <span class="announce-name">{{ announce.name or (announce.hash[:16] + '...') }}</span>
                     <code class="announce-hash">{{ announce.hash[:16] }}...</code>
-                    <a href="/conversations/{{ announce.hash }}" class="announce-action" title="Message">&#9993;</a>
-                    <a href="/browse/{{ announce.hash }}" class="announce-action" title="Browse">&#8594;</a>
-                </div>
+                    <span class="announce-actions">
+                        <span onclick="event.preventDefault(); window.location='/conversations/{{ announce.hash }}'" class="announce-action" title="Message">&#9993;</span>
+                        <span class="announce-action" title="Browse">&#8594;</span>
+                    </span>
+                </a>
                 {% endfor %}
                 {% else %}
                 <p class="no-data">No announces yet. Waiting for network activity...</p>

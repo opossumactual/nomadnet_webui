@@ -87,12 +87,17 @@ async def websocket_endpoint(websocket: WebSocket):
             }))
 
         # Send unread conversation count
-        if hasattr(nomad_app, 'conversations'):
-            unread = sum(1 for c in nomad_app.conversations() if c.unread)
+        try:
+            from nomadnet.Conversation import Conversation
+            conv_list = Conversation.conversation_list(nomad_app)
+            # conv_list is [(hash, name, trust, sort_name, unread), ...]
+            unread = sum(1 for c in conv_list if c[4])  # index 4 is unread flag
             await websocket.send_text(json.dumps({
                 "type": "unread_count",
                 "count": unread
             }))
+        except Exception:
+            pass
 
     except Exception as e:
         print(f"Error sending initial state: {e}")

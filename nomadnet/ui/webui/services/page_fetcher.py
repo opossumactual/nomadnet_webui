@@ -133,6 +133,8 @@ class PageFetcher:
     ) -> PageFetchResult:
         """Fetch a page from the local node's pages directory"""
         try:
+            original_path = path
+
             # Clean up path
             if not path.startswith('/'):
                 path = '/' + path
@@ -156,6 +158,8 @@ class PageFetcher:
             # Construct full path (prevent directory traversal)
             safe_path = os.path.normpath(path).lstrip('/')
             full_path = os.path.join(pages_dir, safe_path)
+
+            RNS.log(f"PageFetcher: Local fetch {original_path} -> {full_path}", RNS.LOG_VERBOSE)
 
             # Verify it's within pages directory
             if not os.path.abspath(full_path).startswith(os.path.abspath(pages_dir)):
@@ -249,7 +253,14 @@ class PageFetcher:
         """Fetch a page from a remote node via RNS.Link"""
         try:
             # Convert hex hash to bytes
-            dest_hash_bytes = bytes.fromhex(destination_hash)
+            try:
+                dest_hash_bytes = bytes.fromhex(destination_hash)
+            except ValueError:
+                result.status = FetchStatus.FAILED
+                result.error = f"Invalid destination hash: {destination_hash}"
+                return result
+
+            RNS.log(f"PageFetcher: Fetching {path} from {destination_hash[:16]}...", RNS.LOG_VERBOSE)
 
             # Update status
             result.status = FetchStatus.RESOLVING
@@ -271,14 +282,24 @@ class PageFetcher:
                         return result
                     time.sleep(0.1)
 
-            # Get the destination identity
+            # Get the destination identity - try a few times as it may take a moment
             dest_identity = RNS.Identity.recall(dest_hash_bytes)
             if not dest_identity:
+                # Wait briefly for identity to become available after path resolution
+                for _ in range(10):
+                    time.sleep(0.2)
+                    dest_identity = RNS.Identity.recall(dest_hash_bytes)
+                    if dest_identity:
+                        break
+
+            if not dest_identity:
                 result.status = FetchStatus.FAILED
-                result.error = "Could not recall destination identity"
+                result.error = f"Could not recall identity for {destination_hash[:16]}... - node may not have announced"
                 if status_callback:
                     status_callback(FetchStatus.FAILED, 0.0)
                 return result
+
+            RNS.log(f"PageFetcher: Identity found for {destination_hash[:16]}..., connecting", RNS.LOG_VERBOSE)
 
             # Create destination
             destination = RNS.Destination(

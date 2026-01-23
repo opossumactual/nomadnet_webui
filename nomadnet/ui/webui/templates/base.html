@@ -107,7 +107,8 @@
 
             container.innerHTML = '';
             announces.forEach(function(announce) {
-                const entry = document.createElement('div');
+                const entry = document.createElement('a');
+                entry.href = '/browse/' + announce.hash;
                 entry.className = 'announce-entry announce-' + announce.type;
 
                 const time = new Date(announce.timestamp * 1000).toLocaleTimeString();
@@ -119,8 +120,10 @@
                     <span class="announce-type">${typeLabel}</span>
                     <span class="announce-name">${name}</span>
                     <code class="announce-hash">${announce.hash.substring(0, 16)}...</code>
-                    <a href="/conversations/${announce.hash}" class="announce-action" title="Message">&#9993;</a>
-                    <a href="/browse/${announce.hash}" class="announce-action" title="Browse">&#8594;</a>
+                    <span class="announce-actions">
+                        <span onclick="event.preventDefault(); window.location='/conversations/${announce.hash}'" class="announce-action" title="Message">&#9993;</span>
+                        <span class="announce-action" title="Browse">&#8594;</span>
+                    </span>
                 `;
                 container.appendChild(entry);
             });

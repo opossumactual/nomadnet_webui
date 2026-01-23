@@ -22,9 +22,12 @@ async def network_index(request: Request):
                 except:
                     pass
 
+            # Use the announce hash directly - Conversation class handles LXMF internally
+            hash_hex = source_hash.hex() if isinstance(source_hash, bytes) else source_hash
+
             announces.append({
                 "timestamp": timestamp,
-                "hash": source_hash.hex() if isinstance(source_hash, bytes) else source_hash,
+                "hash": hash_hex,
                 "name": display_name,
                 "type": announce_type
             })
