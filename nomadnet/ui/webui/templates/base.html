@@ -74,7 +74,35 @@
             };
         }
 
+        // Custom message handler registry - pages can register handlers for specific event types
+        var wsMessageHandlers = {};
+
+        function addWsMessageHandler(eventType, handler) {
+            if (!wsMessageHandlers[eventType]) {
+                wsMessageHandlers[eventType] = [];
+            }
+            wsMessageHandlers[eventType].push(handler);
+        }
+
+        function callCustomHandlers(eventType, data) {
+            var handlers = wsMessageHandlers[eventType] || [];
+            var handled = false;
+            for (var i = 0; i < handlers.length; i++) {
+                try {
+                    handlers[i](data);
+                    handled = true;
+                } catch (e) {
+                    console.error('Handler error:', e);
+                }
+            }
+            return handled;
+        }
+
         function handleWebSocketMessage(data) {
+            // First try custom handlers
+            var handled = callCustomHandlers(data.type, data);
+
+            // Then handle built-in types
             switch(data.type) {
                 case 'announce_stream':
                     updateAnnounceStream(data.announces);
@@ -83,13 +111,13 @@
                     updateUnreadBadge(data.count);
                     break;
                 case 'new_message':
-                    handleNewMessage(data);
+                    handleNewMessage(data, handled);
                     break;
                 case 'new_message_detail':
-                    handleNewMessageDetail(data);
+                    handleNewMessageDetail(data, handled);
                     break;
                 case 'conversations_updated':
-                    handleConversationsUpdated(data);
+                    handleConversationsUpdated(data, handled);
                     break;
                 case 'page_status':
                     updatePageStatus(data.status);
@@ -100,20 +128,17 @@
             }
         }
 
-        function handleNewMessage(data) {
+        function handleNewMessage(data, customHandled) {
+            // Custom handlers take priority - don't reload if they handled it
+            if (customHandled) return;
+
             console.log('New message in conversation:', data.conversation_hash);
-            // If we're viewing this specific conversation, reload to show new message
-            const currentPath = window.location.pathname;
-            if (currentPath === '/conversations/' + data.conversation_hash) {
-                window.location.reload();
-            }
         }
 
-        function handleNewMessageDetail(data) {
-            console.log('New message detail:', data);
+        function handleNewMessageDetail(data, customHandled) {
             // Show toast notification if not currently viewing this conversation
-            const currentPath = window.location.pathname;
-            const isViewingConversation = currentPath === '/conversations/' + data.conversation_hash;
+            var currentPath = window.location.pathname;
+            var isViewingConversation = currentPath === '/conversations/' + data.conversation_hash;
 
             if (!isViewingConversation) {
                 showToast(
@@ -121,16 +146,16 @@
                     data.content_preview || '',
                     '/conversations/' + data.conversation_hash
                 );
-            } else {
-                // Reload to show the new message
-                window.location.reload();
             }
+            // Don't reload - let custom handlers update the UI dynamically
         }
 
-        function handleConversationsUpdated(data) {
-            const currentPath = window.location.pathname;
+        function handleConversationsUpdated(data, customHandled) {
+            // Custom handlers take priority
+            if (customHandled) return;
+
+            var currentPath = window.location.pathname;
             // Only auto-reload if on the main conversations list
-            // Individual conversation views are handled by new_message_detail
             if (currentPath === '/conversations' || currentPath === '/conversations/') {
                 window.location.reload();
             }
@@ -183,9 +208,15 @@
 
             container.innerHTML = '';
             announces.forEach(function(announce) {
-                const entry = document.createElement('a');
-                entry.href = '/browse/' + announce.hash;
+                const entry = document.createElement('div');
                 entry.className = 'announce-entry announce-' + announce.type;
+                entry.onclick = function() {
+                    if (typeof showNodeInfo === 'function') {
+                        showNodeInfo(announce.hash);
+                    } else {
+                        window.location = '/browse/' + announce.hash;
+                    }
+                };
 
                 const time = new Date(announce.timestamp * 1000).toLocaleTimeString();
                 const name = announce.name || announce.hash.substring(0, 16) + '...';
@@ -194,11 +225,11 @@
                 entry.innerHTML = `
                     <span class="announce-time">${time}</span>
                     <span class="announce-type">${typeLabel}</span>
-                    <span class="announce-name">${name}</span>
-                    <code class="announce-hash">${announce.hash.substring(0, 16)}...</code>
+                    <span class="announce-name">${escapeHtml(name)}</span>
+                    <code class="announce-hash">${announce.hash}</code>
                     <span class="announce-actions">
-                        <span onclick="event.preventDefault(); window.location='/conversations/${announce.hash}'" class="announce-action" title="Message">&#9993;</span>
-                        <span class="announce-action" title="Browse">&#8594;</span>
+                        <span onclick="event.stopPropagation(); window.location='/conversations/${announce.hash}'" class="announce-action" title="Message">&#9993;</span>
+                        <span onclick="event.stopPropagation(); window.location='/browse/${announce.hash}'" class="announce-action" title="Browse">&#8594;</span>
                     </span>
                 `;
                 container.appendChild(entry);

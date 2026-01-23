@@ -3,59 +3,144 @@
 {% block title %}NomadNet - Network{% endblock %}
 
 {% block content %}
-<div class="network">
-    <div class="network-sidebar">
-        <div class="panel">
-            <h2>Identity</h2>
-            <code class="identity-hash">{{ identity or 'Not available' }}</code>
+<div class="network network-full">
+    <div class="panel">
+        <h2>Announce Stream</h2>
+        <p class="panel-subtitle">Real-time network activity (updates via WebSocket)</p>
+
+        <div class="waveform-container">
+            <div class="waveform"></div>
         </div>
 
-        <div class="panel">
-            <h2>Interfaces</h2>
-            {% if interfaces %}
-            <ul class="interface-list">
-                {% for iface in interfaces %}
-                <li class="interface-{{ 'online' if iface.status == 'Online' else 'offline' }}">
-                    <span class="iface-name">{{ iface.name }}</span>
-                    <span class="iface-status">{{ iface.status }}</span>
-                </li>
-                {% endfor %}
-            </ul>
+        <div id="announce-stream" class="announce-stream">
+            {% if announces %}
+            {% for announce in announces %}
+            <div class="announce-entry announce-{{ announce.type }}" onclick="showNodeInfo('{{ announce.hash }}')">
+                <span class="announce-time">{{ announce.timestamp | timestamp_format }}</span>
+                <span class="announce-type">
+                    {% if announce.type == 'peer' %}Peer
+                    {% elif announce.type == 'node' %}Node
+                    {% elif announce.type == 'pn' %}Prop.Node
+                    {% else %}{{ announce.type }}{% endif %}
+                </span>
+                <span class="announce-name">{{ announce.name or (announce.hash[:16] + '...') }}</span>
+                <code class="announce-hash">{{ announce.hash }}</code>
+                <span class="announce-actions">
+                    <span onclick="event.stopPropagation(); window.location='/conversations/{{ announce.hash }}'" class="announce-action" title="Message">&#9993;</span>
+                    <span onclick="event.stopPropagation(); window.location='/browse/{{ announce.hash }}'" class="announce-action" title="Browse">&#8594;</span>
+                </span>
+            </div>
+            {% endfor %}
             {% else %}
-            <p class="no-data">No interfaces available</p>
+            <p class="no-data">No announces yet. Waiting for network activity...</p>
             {% endif %}
         </div>
     </div>
+</div>
 
-    <div class="network-main">
-        <div class="panel">
-            <h2>Announce Stream</h2>
-            <p class="panel-subtitle">Real-time network activity (updates via WebSocket)</p>
-
-            <div id="announce-stream" class="announce-stream">
-                {% if announces %}
-                {% for announce in announces %}
-                <a href="/browse/{{ announce.hash }}" class="announce-entry announce-{{ announce.type }}">
-                    <span class="announce-time">{{ announce.timestamp | timestamp_format }}</span>
-                    <span class="announce-type">
-                        {% if announce.type == 'peer' %}Peer
-                        {% elif announce.type == 'node' %}Node
-                        {% elif announce.type == 'pn' %}Prop.Node
-                        {% else %}{{ announce.type }}{% endif %}
-                    </span>
-                    <span class="announce-name">{{ announce.name or (announce.hash[:16] + '...') }}</span>
-                    <code class="announce-hash">{{ announce.hash[:16] }}...</code>
-                    <span class="announce-actions">
-                        <span onclick="event.preventDefault(); window.location='/conversations/{{ announce.hash }}'" class="announce-action" title="Message">&#9993;</span>
-                        <span class="announce-action" title="Browse">&#8594;</span>
-                    </span>
-                </a>
-                {% endfor %}
-                {% else %}
-                <p class="no-data">No announces yet. Waiting for network activity...</p>
-                {% endif %}
-            </div>
+<div id="node-info-dialog" class="dialog-overlay" style="display: none;">
+    <div class="dialog dialog-wide">
+        <h3>Node Info</h3>
+        <div id="node-info-content">
+            <div class="node-info-loading">Loading...</div>
         </div>
     </div>
 </div>
+
+<script>
+var currentNodeHash = null;
+
+function showNodeInfo(hash) {
+    currentNodeHash = hash;
+    document.getElementById('node-info-dialog').style.display = 'flex';
+    document.getElementById('node-info-content').innerHTML = '<div class="node-info-loading">Loading...</div>';
+
+    fetch('/network/node/' + hash)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                document.getElementById('node-info-content').innerHTML = '<div class="error">' + data.error + '</div>';
+                return;
+            }
+
+            var typeLabel = data.type === 'node' ? 'Node' : (data.type === 'pn' ? 'Propagation Node' : 'Peer');
+            var trustClass = data.trust_level === 'trusted' ? 'trust-trusted' : (data.trust_level === 'untrusted' ? 'trust-untrusted' : 'trust-unknown');
+
+            var html = '<div class="node-info-details">';
+            html += '<div class="node-info-row"><span class="label">Name:</span><span class="value">' + (data.display_name || 'Unknown') + '</span></div>';
+            html += '<div class="node-info-row"><span class="label">Type:</span><span class="value">' + typeLabel + '</span></div>';
+            html += '<div class="node-info-row"><span class="label">Address:</span><code class="value node-hash">' + data.hash + '</code></div>';
+            html += '<div class="node-info-row"><span class="label">Distance:</span><span class="value">' + data.hops + '</span></div>';
+            html += '<div class="node-info-row"><span class="label">Trust:</span><span class="value ' + trustClass + '">' + data.trust_level + '</span></div>';
+            html += '</div>';
+
+            html += '<div class="node-info-settings">';
+            html += '<label class="checkbox-label">';
+            html += '<input type="checkbox" id="identify-checkbox" ' + (data.identify_on_connect ? 'checked' : '') + '>';
+            html += '<span>Identify when connecting</span>';
+            html += '</label>';
+            html += '<p class="setting-hint">When enabled, your identity will be sent to this node when browsing its pages. Required for accessing restricted content.</p>';
+            html += '</div>';
+
+            html += '<div class="dialog-actions">';
+            html += '<button type="button" class="btn-primary" onclick="saveNodeSettings()">Save</button>';
+            html += '<button type="button" class="btn-secondary" onclick="hideNodeInfo()">Cancel</button>';
+            html += '<a href="/browse/' + data.hash + '" class="btn-secondary">Browse</a>';
+            html += '<a href="/conversations/' + data.hash + '" class="btn-secondary">Message</a>';
+            html += '</div>';
+
+            document.getElementById('node-info-content').innerHTML = html;
+        })
+        .catch(function(err) {
+            document.getElementById('node-info-content').innerHTML = '<div class="error">Error loading node info</div>';
+        });
+}
+
+function hideNodeInfo() {
+    document.getElementById('node-info-dialog').style.display = 'none';
+    currentNodeHash = null;
+}
+
+function saveNodeSettings() {
+    if (!currentNodeHash) return;
+
+    var identifyChecked = document.getElementById('identify-checkbox').checked;
+
+    fetch('/network/node/' + currentNodeHash + '/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identify_on_connect: identifyChecked })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToast('Settings Saved', 'Node settings have been updated.', 'success');
+            hideNodeInfo();
+        } else {
+            showToast('Error', data.error || 'Failed to save settings', 'error');
+        }
+    })
+    .catch(function(err) {
+        showToast('Error', 'Failed to save settings', 'error');
+    });
+}
+
+document.getElementById('node-info-dialog').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideNodeInfo();
+    }
+});
+
+function showToast(title, message, type) {
+    var toast = document.createElement('div');
+    toast.className = 'toast' + (type ? ' toast-' + type : '');
+    toast.innerHTML = '<div class="toast-header">' + title + '</div><div class="toast-body">' + message + '</div>';
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.classList.add('show'); }, 10);
+    setTimeout(function() {
+        toast.classList.remove('show');
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 4000);
+}
+</script>
 {% endblock %}

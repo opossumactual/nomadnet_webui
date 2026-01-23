@@ -27,9 +27,25 @@ async def index(request: Request):
     # Get display name
     display_name = nomad_app.get_display_name() if hasattr(nomad_app, 'get_display_name') else "Unknown"
 
+    # Get LXMF destination hash (used for peer messaging)
+    lxmf_hash = None
+    try:
+        if hasattr(nomad_app, 'lxmf_destination'):
+            lxmf_dest = nomad_app.lxmf_destination
+            if hasattr(lxmf_dest, 'hash'):
+                lxmf_hash = RNS.prettyhexrep(lxmf_dest.hash).replace("<", "").replace(">", "")
+                RNS.log(f"WebUI: Got LXMF hash: {lxmf_hash}", RNS.LOG_DEBUG)
+            else:
+                RNS.log("WebUI: lxmf_destination has no hash attribute", RNS.LOG_ERROR)
+        else:
+            RNS.log("WebUI: nomad_app has no lxmf_destination attribute", RNS.LOG_ERROR)
+    except Exception as e:
+        RNS.log(f"WebUI: Error getting LXMF hash: {e}", RNS.LOG_ERROR)
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "identity": nomad_app.identity,
+        "lxmf_hash": lxmf_hash,
         "display_name": display_name,
         "interfaces": interfaces,
     })
@@ -64,12 +80,14 @@ async def trigger_announce(request: Request):
     nomad_app = request.app.state.nomad_app
 
     try:
+        identity_hash = nomad_app.lxmf_destination.hexhash
+        display_name = nomad_app.peer_settings.get("display_name", "Unknown")
         nomad_app.announce_now()
-        RNS.log("WebUI: Triggered announce", RNS.LOG_NOTICE)
+        RNS.log(f"WebUI: Sent announce for <{identity_hash}> ({display_name})", RNS.LOG_NOTICE)
+        return RedirectResponse("/?announced=1", status_code=302)
     except Exception as e:
         RNS.log(f"WebUI: Error triggering announce: {e}", RNS.LOG_ERROR)
-
-    return RedirectResponse("/", status_code=302)
+        return RedirectResponse("/?announced=0", status_code=302)
 
 
 @router.get("/login", response_class=HTMLResponse)

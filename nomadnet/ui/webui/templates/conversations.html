@@ -164,17 +164,24 @@
 </div>
 
 <script>
+// Current conversation hash (if viewing one)
+var currentConvHash = '{{ selected or "" }}';
+
 // Auto-scroll to bottom of messages
-document.addEventListener('DOMContentLoaded', function() {
-    const messages = document.getElementById('messages');
+function scrollToBottom() {
+    var messages = document.getElementById('messages');
     if (messages) {
         messages.scrollTop = messages.scrollHeight;
     }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    scrollToBottom();
 });
 
 // Name dialog functions
 function showNameDialog() {
-    const dialog = document.getElementById('name-dialog');
+    var dialog = document.getElementById('name-dialog');
     if (dialog) {
         dialog.style.display = 'flex';
         document.getElementById('new-name').focus();
@@ -182,20 +189,107 @@ function showNameDialog() {
 }
 
 function hideNameDialog() {
-    const dialog = document.getElementById('name-dialog');
+    var dialog = document.getElementById('name-dialog');
     if (dialog) {
         dialog.style.display = 'none';
     }
 }
 
 // Close name dialog on click outside
-const nameDialog = document.getElementById('name-dialog');
+var nameDialog = document.getElementById('name-dialog');
 if (nameDialog) {
     nameDialog.addEventListener('click', function(e) {
         if (e.target === this) {
             hideNameDialog();
         }
     });
+}
+
+// Listen for new messages via WebSocket
+// Wait for DOM to be ready so base.html's addWsMessageHandler is defined
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof addWsMessageHandler === 'function') {
+        // Handler for detailed new message events
+        addWsMessageHandler('new_message_detail', function(data) {
+            console.log('Conversations: Received new_message_detail', data);
+            // Check if this message is for the current conversation
+            if (currentConvHash && data.conversation_hash === currentConvHash) {
+                console.log('Conversations: Appending message to current conversation');
+                appendMessage(data, false);
+            }
+        });
+
+        // Handler for conversation updates (mark unread in sidebar)
+        addWsMessageHandler('new_message', function(data) {
+            console.log('Conversations: Received new_message', data);
+            // Update sidebar unread indicator
+            var convLink = document.querySelector('.conv-list a[href="/conversations/' + data.conversation_hash + '"]');
+            if (convLink) {
+                var li = convLink.parentElement;
+                if (li && !li.classList.contains('selected')) {
+                    li.classList.add('unread');
+                    // Add unread indicator if not present
+                    if (!convLink.querySelector('.unread-indicator')) {
+                        var indicator = document.createElement('span');
+                        indicator.className = 'unread-indicator';
+                        indicator.textContent = '*';
+                        convLink.appendChild(indicator);
+                    }
+                }
+            }
+        });
+
+        // Handler for sent message confirmation
+        addWsMessageHandler('message_sent', function(data) {
+            console.log('Conversations: Received message_sent', data);
+            if (currentConvHash && data.conversation_hash === currentConvHash) {
+                appendMessage(data, true);
+            }
+        });
+
+        console.log('Conversations: WebSocket handlers registered for conv:', currentConvHash);
+    } else {
+        console.error('Conversations: addWsMessageHandler not available');
+    }
+});
+
+function appendMessage(data, isOutgoing) {
+    var messagesDiv = document.getElementById('messages');
+    if (!messagesDiv) return;
+
+    // Remove "no messages" placeholder if present
+    var noMsgs = messagesDiv.querySelector('.no-messages');
+    if (noMsgs) {
+        noMsgs.remove();
+    }
+
+    // Create message element
+    var msgDiv = document.createElement('div');
+    msgDiv.className = 'message ' + (isOutgoing ? 'outgoing' : 'incoming');
+
+    var html = '';
+    if (data.title) {
+        html += '<div class="message-title">' + escapeHtml(data.title) + '</div>';
+    }
+    html += '<div class="message-content">' + escapeHtml(data.content_preview || data.content || '') + '</div>';
+    html += '<div class="message-meta">';
+    html += '<span class="message-time">' + (data.timestamp || 'now') + '</span>';
+    if (isOutgoing && data.state_icon) {
+        html += '<span class="message-state state-' + data.state_class + '">' + data.state_icon + '</span>';
+    }
+    html += '</div>';
+
+    msgDiv.innerHTML = html;
+    messagesDiv.appendChild(msgDiv);
+
+    // Scroll to show new message
+    scrollToBottom();
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 </script>
 {% endblock %}

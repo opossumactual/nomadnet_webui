@@ -2,14 +2,16 @@ import RNS
 import nomadnet
 
 from nomadnet import NomadNetworkApp
-from nomadnet.ui.webui.config import WebUIConfig
-from nomadnet.ui.webui.app import create_app
-from nomadnet.ui.webui.callbacks import setup_callbacks
 
 
 class WebUI:
 
     def __init__(self):
+        # Lazy imports to avoid requiring fastapi when WebUI isn't used
+        from nomadnet.ui.webui.config import WebUIConfig
+        from nomadnet.ui.webui.app import create_app
+        from nomadnet.ui.webui.callbacks import setup_callbacks
+
         self.app = NomadNetworkApp.get_shared_instance()
         self.app.ui = self
         self.main_display = None  # Will be set up by callbacks

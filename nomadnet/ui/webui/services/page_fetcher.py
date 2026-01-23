@@ -353,6 +353,11 @@ class PageFetcher:
                     status_callback(FetchStatus.FAILED, 0.0)
                 return result
 
+            # Check if we should identify to this node
+            if self.app.directory.should_identify_on_connect(dest_hash_bytes):
+                RNS.log(f"PageFetcher: Identifying to {destination_hash[:16]}...", RNS.LOG_VERBOSE)
+                link.identify(self.app.identity)
+
             # Link established, request page
             result.status = FetchStatus.REQUESTING
             if status_callback:

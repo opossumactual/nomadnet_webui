@@ -159,6 +159,8 @@ def setup_callbacks(webui, manager: "ConnectionManager"):
         _original_lxmf_delivery = webui.app.lxmf_delivery
 
         def wrapped_lxmf_delivery(message):
+            RNS.log(f"WebUI: lxmf_delivery called for message from {RNS.prettyhexrep(message.source_hash)}", RNS.LOG_NOTICE)
+
             # Call original handler first
             _original_lxmf_delivery(message)
 
@@ -171,6 +173,8 @@ def setup_callbacks(webui, manager: "ConnectionManager"):
                 # Get sender name from directory
                 sender_name = webui.app.directory.display_name(message.source_hash)
 
+                RNS.log(f"WebUI: Broadcasting new_message_detail for {source_hash[:16]}...", RNS.LOG_NOTICE)
+
                 conversations_display.notify_message_received(
                     source_hash=source_hash,
                     content_preview=content,
@@ -179,7 +183,9 @@ def setup_callbacks(webui, manager: "ConnectionManager"):
                     sender_name=sender_name
                 )
             except Exception as e:
-                RNS.log(f"WebUI: Error in message notification: {e}", RNS.LOG_DEBUG)
+                RNS.log(f"WebUI: Error in message notification: {e}", RNS.LOG_ERROR)
+                import traceback
+                RNS.log(f"WebUI: Traceback: {traceback.format_exc()}", RNS.LOG_ERROR)
 
         webui.app.lxmf_delivery = wrapped_lxmf_delivery
 

@@ -6,22 +6,26 @@
 <div class="home">
     <h1>NomadNet WebUI</h1>
 
-    <div class="home-grid">
+    <div class="home-panels">
         <div class="panel">
             <h2>Node Identity</h2>
             <div class="identity-section">
                 <div class="identity-row">
-                    <span class="label">Address:</span>
-                    <code class="identity-hash">{{ identity.hexhash if identity else 'Not available' }}</code>
+                    <span class="label">Peer Address (LXMF):</span>
+                    <code class="identity-hash">{{ lxmf_hash if lxmf_hash else 'Not available' }}</code>
                 </div>
                 <div class="identity-row">
+                    <span class="label">Node Address:</span>
+                    <code class="identity-hash identity-hash-dim">{{ identity.hexhash if identity else 'Not available' }}</code>
+                </div>
+                <div class="identity-row inline">
                     <span class="label">Display Name:</span>
                     <span class="display-name" id="display-name-text">{{ display_name }}</span>
                     <button type="button" class="btn-edit-small" onclick="showNameEditDialog()" title="Edit name">&#9998;</button>
                 </div>
                 <div class="identity-actions">
-                    <form method="post" action="/settings/announce" style="display: inline;">
-                        <button type="submit" class="btn-announce">Announce Now</button>
+                    <form method="post" action="/settings/announce" style="display: inline;" id="announce-form">
+                        <button type="submit" class="btn-announce" id="announce-btn">Announce Now</button>
                     </form>
                 </div>
             </div>
@@ -33,7 +37,7 @@
             <ul class="interface-list">
                 {% for iface in interfaces %}
                 <li class="interface-item">
-                    <span class="iface-status {% if iface.status == 'Online' %}online{% else %}offline{% endif %}">●</span>
+                    <span class="iface-status {% if iface.status == 'Online' %}online{% else %}offline{% endif %}"></span>
                     <span class="iface-name">{{ iface.name }}</span>
                     <span class="iface-type">{{ iface.type }}</span>
                 </li>
@@ -43,15 +47,12 @@
             <p class="no-interfaces">No interfaces available</p>
             {% endif %}
         </div>
+    </div>
 
-        <div class="panel">
-            <h2>Quick Links</h2>
-            <ul class="quick-links">
-                <li><a href="/network">Network Status</a></li>
-                <li><a href="/browse">Browse Pages</a></li>
-                <li><a href="/conversations">Conversations</a></li>
-            </ul>
-        </div>
+    <div class="quick-links-bar">
+        <a href="/network">Network Status</a>
+        <a href="/browse">Browse Pages</a>
+        <a href="/conversations">Conversations</a>
     </div>
 </div>
 
@@ -87,5 +88,37 @@ document.getElementById('name-edit-dialog').addEventListener('click', function(e
         hideNameEditDialog();
     }
 });
+
+// Announce button feedback
+document.getElementById('announce-form').addEventListener('submit', function(e) {
+    var btn = document.getElementById('announce-btn');
+    btn.textContent = 'Announcing...';
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+});
+
+// Check for success/error message on page load
+document.addEventListener('DOMContentLoaded', function() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('announced') === '1') {
+        showToast('Announce Sent', 'Your identity has been broadcast to the network.', 'success');
+        window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('announced') === '0') {
+        showToast('Announce Failed', 'There was an error broadcasting your identity.', 'error');
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+});
+
+function showToast(title, message, type) {
+    var toast = document.createElement('div');
+    toast.className = 'toast' + (type ? ' toast-' + type : '');
+    toast.innerHTML = '<div class="toast-header">' + title + '</div><div class="toast-body">' + message + '</div>';
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.classList.add('show'); }, 10);
+    setTimeout(function() {
+        toast.classList.remove('show');
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 4000);
+}
 </script>
 {% endblock %}
