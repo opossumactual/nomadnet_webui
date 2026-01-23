@@ -6,7 +6,7 @@ A web-based interface for NomadNet mesh network, providing browser access to Nom
 
 **Repository:** https://github.com/opossumactual/nomadnet_webui
 **Started:** 2026-01-23
-**Status:** MVP functional, conversations not yet implemented
+**Status:** MVP functional with conversations
 
 ## How to Run
 
@@ -147,9 +147,25 @@ Added to `setup.py` extras:
 
 ## Known Issues
 
-1. ASCII art banners may wrap on narrow windows (trade-off for text readability)
-2. Some complex Micron markup edge cases may not render perfectly
-3. Remote node connections can timeout if nodes are offline/slow
+### Critical Bugs (Need Fixing)
+
+1. **Peer identity never found** - When opening a conversation with a node from the announce stream, the "identity unknown" message appears and never resolves, even after waiting and refreshing. The `RNS.Transport.request_path()` call may not be working correctly, or there's an issue with how we check `conversation.source_known`.
+
+2. **Network page nodes not clickable** - After adding the message/browse icons, clicking on the node row itself no longer navigates to the browser. The entire row should be clickable, or at least the node name should link to browse.
+
+3. **Browser can't load remote pages** - The page browser fails to load pages hosted by other nodes (e.g., their Wikipedia server, links to other NomadNet pages). Need to debug the remote page fetching in `page_fetcher.py`.
+
+4. **Browser can't load local pages** - Local page browsing may also be broken. Need to verify local file path resolution.
+
+### UI Improvements Needed
+
+5. **Missing type tags in new conversation** - The "Known Peers" list in the new conversation window should show type indicators (Peer/Node/Prop.Node) like the network announce stream does. Currently only shows name and hash.
+
+### Minor Issues
+
+6. ASCII art banners may wrap on narrow windows (trade-off for text readability)
+7. Some complex Micron markup edge cases may not render perfectly
+8. Remote node connections can timeout if nodes are offline/slow
 
 ## Files Modified from Original NomadNet
 
@@ -160,13 +176,30 @@ Added to `setup.py` extras:
 
 ## Next Session Context
 
-To continue development, the main focus should be:
+To continue development, focus on fixing the critical bugs:
 
-1. **Conversations** - Look at how TextUI handles LXMF:
-   - `nomadnet/ui/textui/Conversations.py`
-   - `nomadnet/ui/textui/Messages.py`
-   - `app.message_router` for LXMF access
+### Priority 1: Fix Page Browser
+- Debug `services/page_fetcher.py` for remote page loading
+- Check path resolution for local vs remote pages
+- Test with known working nodes (e.g., Wikipedia servers on the network)
 
-2. **Testing** - The webui server can run alongside TextUI (different processes)
+### Priority 2: Fix Identity Discovery
+- Investigate why `RNS.Transport.request_path()` doesn't result in identity being found
+- Check if `RNS.Identity.recall()` is being called correctly
+- Compare with TextUI's `Conversations.py` to see how it handles identity discovery
+- May need to wait for path response before checking identity
 
-3. **Start server**: `cd /home/opossum/odev/claudenet/NomadNet && source .venv/bin/activate && nomadnet -w`
+### Priority 3: Fix Network Page Clicking
+- The announce entries changed from `<a>` to `<div>` when adding icons
+- Either make the div clickable, or make the name/hash a link to browse
+
+### Priority 4: Add Type Tags
+- Update `_get_known_peers()` in `routes/conversations.py` to include type
+- Update `conversations.html` template to display type badges
+
+### Start Server
+```bash
+cd /home/opossum/odev/claudenet/NomadNet
+source .venv/bin/activate
+nomadnet -w
+```
