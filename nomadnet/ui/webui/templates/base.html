@@ -107,23 +107,22 @@
 
             container.innerHTML = '';
             announces.forEach(function(announce) {
-                const link = document.createElement('a');
-                link.href = '/browse/' + announce.hash;
-                link.className = 'announce-entry announce-' + announce.type;
-                link.tabIndex = 0;
+                const entry = document.createElement('div');
+                entry.className = 'announce-entry announce-' + announce.type;
 
                 const time = new Date(announce.timestamp * 1000).toLocaleTimeString();
                 const name = announce.name || announce.hash.substring(0, 16) + '...';
                 const typeLabel = {'peer': 'Peer', 'node': 'Node', 'pn': 'Prop.Node'}[announce.type] || announce.type;
 
-                link.innerHTML = `
+                entry.innerHTML = `
                     <span class="announce-time">${time}</span>
                     <span class="announce-type">${typeLabel}</span>
                     <span class="announce-name">${name}</span>
                     <code class="announce-hash">${announce.hash.substring(0, 16)}...</code>
-                    <span class="announce-browse-icon">&#8594;</span>
+                    <a href="/conversations/${announce.hash}" class="announce-action" title="Message">&#9993;</a>
+                    <a href="/browse/${announce.hash}" class="announce-action" title="Browse">&#8594;</a>
                 `;
-                container.appendChild(link);
+                container.appendChild(entry);
             });
         }
 

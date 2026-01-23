@@ -293,6 +293,16 @@ footer {
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.btn-new:hover {
+    background: var(--accent-dim);
 }
 
 .conv-list ul {
@@ -418,6 +428,215 @@ footer {
     padding: 0.5rem 1rem;
     border-radius: 4px;
     cursor: pointer;
+}
+
+/* Trust icons */
+.trust-icon {
+    margin-right: 0.5rem;
+    font-weight: bold;
+}
+
+.trust-trusted { color: var(--success); }
+.trust-unknown { color: var(--fg-dim); }
+.trust-untrusted { color: var(--error); }
+.trust-warning { color: var(--warning); }
+
+/* Message state icons */
+.message-state {
+    margin-left: 0.5rem;
+}
+
+.state-delivered { color: var(--success); }
+.state-sent { color: var(--fg-dim); }
+.state-failed { color: var(--error); }
+
+/* Message title */
+.message-title {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+/* Cannot send warning */
+.cannot-send {
+    padding: 1rem;
+    text-align: center;
+    color: var(--warning);
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+}
+
+.cannot-send .hint {
+    color: var(--fg-dim);
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+.btn-refresh {
+    display: inline-block;
+    margin-top: 0.75rem;
+    background: var(--bg-lighter);
+    color: var(--fg);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.btn-refresh:hover {
+    background: var(--border);
+}
+
+/* New conversation form */
+.new-conv-form {
+    padding: 2rem;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.new-conv-form h3 {
+    margin-bottom: 1.5rem;
+    color: var(--accent);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--fg-dim);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn-primary:hover {
+    background: var(--accent-dim);
+}
+
+.btn-secondary {
+    background: var(--bg-lighter);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.btn-secondary:hover {
+    background: var(--border);
+}
+
+.error-message {
+    background: var(--error);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+/* Known peers list in new conversation */
+.known-peers {
+    margin-bottom: 1.5rem;
+}
+
+.known-peers h4 {
+    color: var(--fg-dim);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.peer-list {
+    list-style: none;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.peer-list li a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    color: var(--fg);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+}
+
+.peer-list li:last-child a {
+    border-bottom: none;
+}
+
+.peer-list li a:hover {
+    background: var(--bg-lighter);
+}
+
+.peer-name {
+    flex: 1;
+}
+
+.peer-hash {
+    font-size: 0.8rem;
+    color: var(--fg-dim);
+}
+
+.form-divider {
+    text-align: center;
+    color: var(--fg-dim);
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.form-divider::before,
+.form-divider::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: var(--border);
+}
+
+.form-divider::before {
+    left: 0;
+}
+
+.form-divider::after {
+    right: 0;
 }
 
 /* Network page */
@@ -555,10 +774,15 @@ footer {
     color: var(--fg-dim);
 }
 
-.announce-browse-icon {
+.announce-action {
     color: var(--accent);
     padding: 0.25rem 0.5rem;
-    margin-left: auto;
+    text-decoration: none;
+    border-radius: 3px;
+}
+
+.announce-action:hover {
+    background: var(--bg-lighter);
 }
 
 .no-data {

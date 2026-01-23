@@ -60,13 +60,15 @@ Access at: http://localhost:8282
 ## What's NOT Working / TODO
 
 ### High Priority
-- [ ] **Conversations page** - Currently just a skeleton
-  - Need to integrate with LXMF message router
-  - List conversations
-  - Read message threads
-  - Compose and send messages
-  - Mark as read/unread
-  - Real-time new message notifications
+- [x] **Conversations page** - Core messaging implemented
+  - [x] List conversations with trust indicators
+  - [x] Read message threads with delivery status
+  - [x] Compose and send messages
+  - [x] Mark as read when viewed
+  - [x] Create new conversations
+  - [ ] Real-time new message notifications (WebSocket push)
+  - [ ] Trust level editing
+  - [ ] Message sync from propagation nodes
 
 ### Medium Priority
 - [ ] **File downloads** - Nodes serve files at `/file/` paths

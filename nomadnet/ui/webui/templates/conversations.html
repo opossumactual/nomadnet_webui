@@ -7,14 +7,15 @@
     <div class="conv-list">
         <div class="conv-list-header">
             <h2>Conversations</h2>
-            <button class="btn-new" title="New Conversation">+</button>
+            <a href="/conversations/new" class="btn-new" title="New Conversation">+</a>
         </div>
 
         {% if conversations %}
         <ul>
             {% for conv in conversations %}
-            <li class="{% if conv.get('selected') %}selected{% endif %} {% if conv.unread %}unread{% endif %}">
+            <li class="{% if conv.selected %}selected{% endif %} {% if conv.unread %}unread{% endif %}">
                 <a href="/conversations/{{ conv.hash }}">
+                    <span class="trust-icon trust-{{ conv.trust_class }}">{{ conv.trust_icon }}</span>
                     <span class="conv-name">{{ conv.name }}</span>
                     {% if conv.unread %}
                     <span class="unread-indicator">*</span>
@@ -29,7 +30,47 @@
     </div>
 
     <div class="conv-detail">
-        {% if selected %}
+        {% if show_new_form %}
+        <div class="new-conv-form">
+            <h3>New Conversation</h3>
+            {% if error %}
+            <div class="error-message">{{ error }}</div>
+            {% endif %}
+
+            {% if known_peers %}
+            <div class="known-peers">
+                <h4>Known Peers</h4>
+                <ul class="peer-list">
+                    {% for peer in known_peers %}
+                    <li>
+                        <a href="/conversations/{{ peer.hash }}">
+                            <span class="peer-name">{{ peer.name }}</span>
+                            <code class="peer-hash">{{ peer.hash[:16] }}...</code>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="form-divider">or enter address manually</div>
+            {% endif %}
+
+            <form method="post" action="/conversations/new">
+                <div class="form-group">
+                    <label for="address">Address (hex hash)</label>
+                    <input type="text" name="address" id="address" required
+                           placeholder="e.g. a1b2c3d4e5f6..." pattern="[0-9a-fA-F]+">
+                </div>
+                <div class="form-group">
+                    <label for="name">Display Name (optional)</label>
+                    <input type="text" name="name" id="name" placeholder="Friendly name">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Create</button>
+                    <a href="/conversations" class="btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+        {% elif selected %}
         <div class="conv-header">
             <h3>{{ selected_name }}</h3>
             <code class="conv-hash">{{ selected }}</code>
@@ -39,8 +80,16 @@
             {% if messages %}
             {% for msg in messages %}
             <div class="message {% if msg.outgoing %}outgoing{% else %}incoming{% endif %}">
+                {% if msg.title %}
+                <div class="message-title">{{ msg.title }}</div>
+                {% endif %}
                 <div class="message-content">{{ msg.content }}</div>
-                <div class="message-meta">{{ msg.timestamp }}</div>
+                <div class="message-meta">
+                    <span class="message-time">{{ msg.timestamp }}</span>
+                    {% if msg.outgoing and msg.state_icon %}
+                    <span class="message-state state-{{ msg.state_class }}">{{ msg.state_icon }}</span>
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
             {% else %}
@@ -48,15 +97,43 @@
             {% endif %}
         </div>
 
-        <form class="message-form" method="post" action="/conversations/{{ selected }}/send">
-            <textarea name="message" placeholder="Type a message..." rows="2"></textarea>
+        {% if can_send %}
+        <form class="message-form" method="post" action="/conversations/{{ selected }}/send" id="message-form">
+            <textarea name="message" placeholder="Type a message... (Enter to send, Shift+Enter for newline)" rows="2" required id="message-input"></textarea>
             <button type="submit">Send</button>
         </form>
+        <script>
+        document.getElementById('message-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (this.value.trim()) {
+                    document.getElementById('message-form').submit();
+                }
+            }
+        });
+        </script>
+        {% else %}
+        <div class="cannot-send">
+            <p>Cannot send messages - peer identity unknown</p>
+            <p class="hint">Identity requested from network. Refresh in a few seconds.</p>
+            <a href="/conversations/{{ selected }}" class="btn-refresh">Refresh</a>
+        </div>
+        {% endif %}
         {% else %}
         <div class="no-selection">
-            <p>Select a conversation to view messages</p>
+            <p>Select a conversation or start a new one</p>
         </div>
         {% endif %}
     </div>
 </div>
+
+<script>
+// Auto-scroll to bottom of messages
+document.addEventListener('DOMContentLoaded', function() {
+    const messages = document.getElementById('messages');
+    if (messages) {
+        messages.scrollTop = messages.scrollHeight;
+    }
+});
+</script>
 {% endblock %}
