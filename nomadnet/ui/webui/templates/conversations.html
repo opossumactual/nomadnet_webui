@@ -7,7 +7,9 @@
     <div class="conv-list">
         <div class="conv-list-header">
             <h2>Conversations</h2>
-            <a href="/conversations/new" class="btn-new" title="New Conversation">+</a>
+            <div class="conv-list-actions">
+                <a href="/conversations/new" class="btn-new" title="New Conversation">+</a>
+            </div>
         </div>
 
         {% if conversations %}
@@ -16,7 +18,7 @@
             <li class="{% if conv.selected %}selected{% endif %} {% if conv.unread %}unread{% endif %}">
                 <a href="/conversations/{{ conv.hash }}">
                     <span class="trust-icon trust-{{ conv.trust_class }}">{{ conv.trust_icon }}</span>
-                    <span class="conv-name">{{ conv.name }}</span>
+                    <span class="conv-name">{% if conv.name and conv.name != 'Undefined' %}{{ conv.name }}{% else %}{{ conv.hash[:16] }}...{% endif %}</span>
                     {% if conv.unread %}
                     <span class="unread-indicator">*</span>
                     {% endif %}
@@ -79,8 +81,35 @@
         </div>
         {% elif selected %}
         <div class="conv-header">
-            <h3>{{ selected_name }}</h3>
+            <div class="conv-header-top">
+                <h3 id="peer-name-display">{% if selected_name and selected_name != 'Undefined' %}{{ selected_name }}{% else %}{{ selected[:16] }}...{% endif %}</h3>
+                <button type="button" class="btn-edit-name" onclick="showNameDialog()" title="Edit name">&#9998;</button>
+                <form class="trust-form" method="post" action="/conversations/{{ selected }}/trust">
+                    <label for="trust-select">Trust:</label>
+                    <select name="trust_level" id="trust-select" onchange="this.form.submit()">
+                        <option value="1" {% if trust_level == 1 %}selected{% endif %}>Untrusted</option>
+                        <option value="2" {% if trust_level == 2 %}selected{% endif %}>Unknown</option>
+                        <option value="255" {% if trust_level == 255 %}selected{% endif %}>Trusted</option>
+                    </select>
+                </form>
+            </div>
             <code class="conv-hash">{{ selected }}</code>
+        </div>
+
+        <div id="name-dialog" class="dialog-overlay" style="display: none;">
+            <div class="dialog">
+                <h3>Edit Display Name</h3>
+                <form method="post" action="/conversations/{{ selected }}/name">
+                    <div class="form-group">
+                        <label for="new-name">Display Name</label>
+                        <input type="text" name="name" id="new-name" value="{% if selected_name and selected_name != 'Undefined' %}{{ selected_name }}{% endif %}" placeholder="Enter a name for this peer">
+                    </div>
+                    <div class="dialog-actions">
+                        <button type="submit" class="btn-primary">Save</button>
+                        <button type="button" class="btn-secondary" onclick="hideNameDialog()">Cancel</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <div class="messages" id="messages">
@@ -142,5 +171,31 @@ document.addEventListener('DOMContentLoaded', function() {
         messages.scrollTop = messages.scrollHeight;
     }
 });
+
+// Name dialog functions
+function showNameDialog() {
+    const dialog = document.getElementById('name-dialog');
+    if (dialog) {
+        dialog.style.display = 'flex';
+        document.getElementById('new-name').focus();
+    }
+}
+
+function hideNameDialog() {
+    const dialog = document.getElementById('name-dialog');
+    if (dialog) {
+        dialog.style.display = 'none';
+    }
+}
+
+// Close name dialog on click outside
+const nameDialog = document.getElementById('name-dialog');
+if (nameDialog) {
+    nameDialog.addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideNameDialog();
+        }
+    });
+}
 </script>
 {% endblock %}

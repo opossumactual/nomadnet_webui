@@ -7,14 +7,69 @@ router = APIRouter()
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Main landing page"""
+    import RNS
+
     templates = request.app.state.templates
     nomad_app = request.app.state.nomad_app
+
+    # Get interface stats
+    interfaces = []
+    try:
+        for interface in RNS.Transport.interfaces:
+            interfaces.append({
+                "name": str(interface),
+                "status": "Online" if interface.online else "Offline",
+                "type": interface.__class__.__name__
+            })
+    except:
+        pass
+
+    # Get display name
+    display_name = nomad_app.get_display_name() if hasattr(nomad_app, 'get_display_name') else "Unknown"
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "identity": nomad_app.identity,
-        "node_name": getattr(nomad_app, 'node_name', 'NomadNet Node'),
+        "display_name": display_name,
+        "interfaces": interfaces,
     })
+
+
+@router.post("/settings/name")
+async def update_display_name(request: Request, display_name: str = Form(...)):
+    """Update the node's display name and announce"""
+    import RNS
+
+    nomad_app = request.app.state.nomad_app
+
+    try:
+        new_name = display_name.strip()
+        if new_name:
+            nomad_app.set_display_name(new_name)
+            RNS.log(f"WebUI: Updated display name to '{new_name}'", RNS.LOG_NOTICE)
+            # Also announce with the new name
+            nomad_app.announce_now()
+            RNS.log("WebUI: Announced with new display name", RNS.LOG_NOTICE)
+    except Exception as e:
+        RNS.log(f"WebUI: Error updating display name: {e}", RNS.LOG_ERROR)
+
+    return RedirectResponse("/", status_code=302)
+
+
+@router.post("/settings/announce")
+async def trigger_announce(request: Request):
+    """Trigger an immediate announce"""
+    import RNS
+
+    nomad_app = request.app.state.nomad_app
+
+    try:
+        nomad_app.announce_now()
+        RNS.log("WebUI: Triggered announce", RNS.LOG_NOTICE)
+    except Exception as e:
+        RNS.log(f"WebUI: Error triggering announce: {e}", RNS.LOG_ERROR)
+
+    return RedirectResponse("/", status_code=302)
 
 
 @router.get("/login", response_class=HTMLResponse)

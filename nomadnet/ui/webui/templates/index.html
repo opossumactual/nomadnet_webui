@@ -6,17 +6,86 @@
 <div class="home">
     <h1>NomadNet WebUI</h1>
 
-    <div class="identity-info">
-        <h2>Node Identity</h2>
-        <code>{{ identity.hexhash if identity else 'Not available' }}</code>
-    </div>
+    <div class="home-grid">
+        <div class="panel">
+            <h2>Node Identity</h2>
+            <div class="identity-section">
+                <div class="identity-row">
+                    <span class="label">Address:</span>
+                    <code class="identity-hash">{{ identity.hexhash if identity else 'Not available' }}</code>
+                </div>
+                <div class="identity-row">
+                    <span class="label">Display Name:</span>
+                    <span class="display-name" id="display-name-text">{{ display_name }}</span>
+                    <button type="button" class="btn-edit-small" onclick="showNameEditDialog()" title="Edit name">&#9998;</button>
+                </div>
+                <div class="identity-actions">
+                    <form method="post" action="/settings/announce" style="display: inline;">
+                        <button type="submit" class="btn-announce">Announce Now</button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-    <div class="quick-links">
-        <h2>Quick Links</h2>
-        <ul>
-            <li><a href="/browse">Browse Pages</a></li>
-            <li><a href="/conversations">Conversations</a></li>
-        </ul>
+        <div class="panel">
+            <h2>Interfaces</h2>
+            {% if interfaces %}
+            <ul class="interface-list">
+                {% for iface in interfaces %}
+                <li class="interface-item">
+                    <span class="iface-status {% if iface.status == 'Online' %}online{% else %}offline{% endif %}">●</span>
+                    <span class="iface-name">{{ iface.name }}</span>
+                    <span class="iface-type">{{ iface.type }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="no-interfaces">No interfaces available</p>
+            {% endif %}
+        </div>
+
+        <div class="panel">
+            <h2>Quick Links</h2>
+            <ul class="quick-links">
+                <li><a href="/network">Network Status</a></li>
+                <li><a href="/browse">Browse Pages</a></li>
+                <li><a href="/conversations">Conversations</a></li>
+            </ul>
+        </div>
     </div>
 </div>
+
+<div id="name-edit-dialog" class="dialog-overlay" style="display: none;">
+    <div class="dialog">
+        <h3>Edit Display Name</h3>
+        <p>This name is broadcast when you announce to the network.</p>
+        <form method="post" action="/settings/name">
+            <div class="form-group">
+                <label for="display-name-input">Display Name</label>
+                <input type="text" name="display_name" id="display-name-input" value="{{ display_name }}" required>
+            </div>
+            <div class="dialog-actions">
+                <button type="submit" class="btn-primary">Save & Announce</button>
+                <button type="button" class="btn-secondary" onclick="hideNameEditDialog()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showNameEditDialog() {
+    document.getElementById('name-edit-dialog').style.display = 'flex';
+    document.getElementById('display-name-input').focus();
+}
+
+function hideNameEditDialog() {
+    document.getElementById('name-edit-dialog').style.display = 'none';
+}
+
+document.getElementById('name-edit-dialog').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideNameEditDialog();
+    }
+});
+</script>
 {% endblock %}

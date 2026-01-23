@@ -83,14 +83,13 @@
                     updateUnreadBadge(data.count);
                     break;
                 case 'new_message':
-                    // Could show a notification
-                    console.log('New message:', data);
+                    handleNewMessage(data);
+                    break;
+                case 'new_message_detail':
+                    handleNewMessageDetail(data);
                     break;
                 case 'conversations_updated':
-                    // Refresh conversations if on that page
-                    if (window.location.pathname.startsWith('/conversations')) {
-                        window.location.reload();
-                    }
+                    handleConversationsUpdated(data);
                     break;
                 case 'page_status':
                     updatePageStatus(data.status);
@@ -99,6 +98,83 @@
                     // Keep-alive response
                     break;
             }
+        }
+
+        function handleNewMessage(data) {
+            console.log('New message in conversation:', data.conversation_hash);
+            // If we're viewing this specific conversation, reload to show new message
+            const currentPath = window.location.pathname;
+            if (currentPath === '/conversations/' + data.conversation_hash) {
+                window.location.reload();
+            }
+        }
+
+        function handleNewMessageDetail(data) {
+            console.log('New message detail:', data);
+            // Show toast notification if not currently viewing this conversation
+            const currentPath = window.location.pathname;
+            const isViewingConversation = currentPath === '/conversations/' + data.conversation_hash;
+
+            if (!isViewingConversation) {
+                showToast(
+                    data.sender_name || data.conversation_hash.substring(0, 16) + '...',
+                    data.content_preview || '',
+                    '/conversations/' + data.conversation_hash
+                );
+            } else {
+                // Reload to show the new message
+                window.location.reload();
+            }
+        }
+
+        function handleConversationsUpdated(data) {
+            const currentPath = window.location.pathname;
+            // Only auto-reload if on the main conversations list
+            // Individual conversation views are handled by new_message_detail
+            if (currentPath === '/conversations' || currentPath === '/conversations/') {
+                window.location.reload();
+            }
+        }
+
+        function showToast(title, message, link) {
+            // Create toast element with fallbacks for undefined values
+            const safeTitle = title || 'New Message';
+            const safeMessage = message || '';
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <div class="toast-header">${escapeHtml(safeTitle)}</div>
+                <div class="toast-body">${escapeHtml(safeMessage.substring(0, 80))}${safeMessage.length > 80 ? '...' : ''}</div>
+            `;
+
+            if (link) {
+                toast.style.cursor = 'pointer';
+                toast.onclick = function() {
+                    window.location.href = link;
+                };
+            }
+
+            // Add to page
+            document.body.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(function() {
+                toast.classList.add('show');
+            }, 10);
+
+            // Auto-remove after 5 seconds
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() {
+                    toast.remove();
+                }, 300);
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function updateAnnounceStream(announces) {

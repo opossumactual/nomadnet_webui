@@ -66,9 +66,10 @@ Access at: http://localhost:8282
   - [x] Compose and send messages
   - [x] Mark as read when viewed
   - [x] Create new conversations
-  - [ ] Real-time new message notifications (WebSocket push)
-  - [ ] Trust level editing
-  - [ ] Message sync from propagation nodes
+  - [x] Real-time new message notifications (WebSocket push with toast)
+  - [x] Trust level editing (dropdown in conversation header)
+  - [x] Display name editing (pencil icon to rename peers)
+  - [x] Message sync from propagation nodes (API routes available, UI hidden - only useful with propagation node)
 
 ### Medium Priority
 - [ ] **File downloads** - Nodes serve files at `/file/` paths
@@ -184,18 +185,19 @@ Added to `setup.py` extras:
 
 ### Next Priorities
 
-### Priority 1: Test Page Browser
-- Start the server and test local page navigation
-- Test remote page loading to nodes from announce stream
-- Check logs for any path resolution issues
+### Priority 1: Medium Priority Items
+- File downloads from nodes
+- Browser history improvements
+- Page caching UI (show cached status, force refresh)
+- Loading indicators during remote fetches
+- Better styled error pages
 
-### Priority 2: Real-time Message Notifications
-- Add WebSocket push for new incoming messages
-- Show notification or badge update when messages arrive
-
-### Priority 3: Trust Level Editing
-- Allow changing trust level from conversation view
-- Add UI for trust management
+### Priority 2: Low Priority Items
+- Bookmarks for frequently visited nodes
+- Search across known nodes
+- Mobile responsive improvements
+- Light theme option
+- Settings page
 
 ### Start Server
 ```bash

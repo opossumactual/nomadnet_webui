@@ -27,24 +27,90 @@ STATE_ICONS = {
 
 def _build_conversation_list(nomad_app, selected_hash=None):
     """Build conversation list with trust indicators"""
+    import RNS
     from nomadnet.Conversation import Conversation
 
     conversations = []
-    conv_list = Conversation.conversation_list(nomad_app)
+
+    try:
+        conv_list = Conversation.conversation_list(nomad_app)
+    except Exception as e:
+        RNS.log(f"WebUI: Error getting conversation list: {e}", RNS.LOG_ERROR)
+        return conversations
 
     for source_hash, display_name, trust_level, sort_name, unread in conv_list:
-        icon, trust_class = TRUST_ICONS.get(trust_level, ("?", "unknown"))
-        is_selected = source_hash == selected_hash
+        try:
+            icon, trust_class = TRUST_ICONS.get(trust_level, ("?", "unknown"))
+            is_selected = source_hash == selected_hash
 
-        conversations.append({
-            "hash": source_hash,
-            "name": display_name or source_hash[:16] + "...",
-            "unread": unread,
-            "selected": is_selected,
-            "trust_icon": icon,
-            "trust_class": trust_class,
-            "trust_level": trust_level,
-        })
+            # Try to get a proper name, handling "Undefined" from old directory entries
+            name = None
+
+            # First check if we have a valid name from the conversation list
+            if display_name and display_name != "Undefined":
+                name = display_name
+
+            # If no valid name, try to look it up from various sources
+            if not name:
+                try:
+                    source_hash_bytes = bytes.fromhex(source_hash)
+
+                    # Try 1: Identity app_data
+                    app_data = RNS.Identity.recall_app_data(source_hash_bytes)
+                    if app_data:
+                        try:
+                            name = LXMF.display_name_from_app_data(app_data)
+                        except:
+                            try:
+                                name = app_data.decode('utf-8')
+                            except:
+                                pass
+
+                    # Try 2: Check announce stream for this hash
+                    if not name and hasattr(nomad_app, 'directory') and nomad_app.directory:
+                        for entry in nomad_app.directory.announce_stream:
+                            try:
+                                timestamp, ann_hash, ann_data, ann_type = entry
+                                ann_hash_hex = ann_hash.hex() if isinstance(ann_hash, bytes) else ann_hash
+                                if ann_hash_hex == source_hash and ann_data:
+                                    try:
+                                        name = LXMF.display_name_from_app_data(ann_data)
+                                    except:
+                                        try:
+                                            name = ann_data.decode('utf-8')
+                                        except:
+                                            pass
+                                    if name:
+                                        break
+                            except:
+                                continue
+
+                    # If we found a name and the directory has "Undefined", update it
+                    if name and (display_name == "Undefined" or not display_name):
+                        existing_entry = nomad_app.directory.find(source_hash_bytes)
+                        if existing_entry:
+                            if existing_entry.display_name == "Undefined" or not existing_entry.display_name:
+                                existing_entry.display_name = name
+                                nomad_app.directory.save_to_disk()
+                except:
+                    pass
+
+            # Final fallback to hash
+            if not name:
+                name = source_hash[:16] + "..."
+
+            conversations.append({
+                "hash": source_hash,
+                "name": name,
+                "unread": unread,
+                "selected": is_selected,
+                "trust_icon": icon,
+                "trust_class": trust_class,
+                "trust_level": trust_level,
+            })
+        except Exception as e:
+            RNS.log(f"WebUI: Error processing conversation {source_hash[:16] if source_hash else 'unknown'}...: {e}", RNS.LOG_ERROR)
+            continue
 
     return conversations
 
@@ -124,14 +190,16 @@ def _load_messages(nomad_app, conv_hash):
 @router.get("/", response_class=HTMLResponse)
 async def conversations_list(request: Request):
     """List all conversations"""
+    import RNS
+
     templates = request.app.state.templates
     nomad_app = request.app.state.nomad_app
 
     conversations = []
     try:
         conversations = _build_conversation_list(nomad_app)
-    except Exception:
-        pass
+    except Exception as e:
+        RNS.log(f"WebUI: Error building conversation list: {e}", RNS.LOG_ERROR)
 
     return templates.TemplateResponse("conversations.html", {
         "request": request,
@@ -262,6 +330,8 @@ async def create_conversation(
 @router.get("/{conv_hash}", response_class=HTMLResponse)
 async def conversation_detail(request: Request, conv_hash: str):
     """View a specific conversation"""
+    import RNS
+
     # Handle "new" explicitly in case route ordering doesn't work
     if conv_hash == "new":
         return await new_conversation_form(request)
@@ -296,8 +366,8 @@ async def conversation_detail(request: Request, conv_hash: str):
             if os.path.isfile(unread_path):
                 os.unlink(unread_path)
 
-    except Exception:
-        pass
+    except Exception as e:
+        RNS.log(f"WebUI: Error loading conversation {conv_hash[:16]}...: {e}", RNS.LOG_ERROR)
 
     return templates.TemplateResponse("conversations.html", {
         "request": request,
@@ -334,5 +404,193 @@ async def send_message(
     except Exception as e:
         import RNS
         RNS.log(f"WebUI: Error sending message: {e}", RNS.LOG_ERROR)
+
+    return RedirectResponse(f"/conversations/{conv_hash}", status_code=302)
+
+
+@router.post("/sync")
+async def trigger_sync(
+    request: Request,
+    limit: int = Form(5)
+):
+    """Trigger LXMF sync from propagation node"""
+    import RNS
+    import LXMF
+
+    nomad_app = request.app.state.nomad_app
+
+    try:
+        # Check if sync is already in progress
+        state = nomad_app.message_router.propagation_transfer_state
+        if state != LXMF.LXMRouter.PR_IDLE and state < LXMF.LXMRouter.PR_COMPLETE:
+            RNS.log("WebUI: Sync already in progress", RNS.LOG_DEBUG)
+        else:
+            nomad_app.request_lxmf_sync(limit=limit if limit > 0 else None)
+            RNS.log(f"WebUI: Initiated LXMF sync with limit={limit}", RNS.LOG_NOTICE)
+    except Exception as e:
+        RNS.log(f"WebUI: Error triggering sync: {e}", RNS.LOG_ERROR)
+
+    return RedirectResponse("/conversations", status_code=302)
+
+
+@router.post("/sync/cancel")
+async def cancel_sync(request: Request):
+    """Cancel ongoing LXMF sync"""
+    import RNS
+
+    nomad_app = request.app.state.nomad_app
+
+    try:
+        nomad_app.cancel_lxmf_sync()
+        RNS.log("WebUI: Cancelled LXMF sync", RNS.LOG_NOTICE)
+    except Exception as e:
+        RNS.log(f"WebUI: Error cancelling sync: {e}", RNS.LOG_ERROR)
+
+    return RedirectResponse("/conversations", status_code=302)
+
+
+@router.get("/sync/status")
+async def sync_status(request: Request):
+    """Get current sync status"""
+    import LXMF
+    from fastapi.responses import JSONResponse
+
+    nomad_app = request.app.state.nomad_app
+
+    try:
+        status = nomad_app.get_sync_status()
+        progress = nomad_app.get_sync_progress()
+        state = nomad_app.message_router.propagation_transfer_state
+
+        # Determine if sync is active
+        is_syncing = state != LXMF.LXMRouter.PR_IDLE and state < LXMF.LXMRouter.PR_COMPLETE
+
+        # Get propagation node info
+        pn_hash = nomad_app.get_default_propagation_node()
+        pn_name = None
+        if pn_hash:
+            pn_name = nomad_app.directory.display_name(pn_hash)
+
+        return JSONResponse({
+            "status": status,
+            "progress": progress,
+            "is_syncing": is_syncing,
+            "propagation_node": pn_hash.hex() if pn_hash else None,
+            "propagation_node_name": pn_name,
+        })
+    except Exception as e:
+        return JSONResponse({"status": "Error", "error": str(e)}, status_code=500)
+
+
+@router.post("/{conv_hash}/name")
+async def update_display_name(
+    request: Request,
+    conv_hash: str,
+    name: str = Form("")
+):
+    """Update display name for a conversation peer"""
+    import RNS
+
+    nomad_app = request.app.state.nomad_app
+
+    try:
+        source_hash_bytes = bytes.fromhex(conv_hash)
+        new_name = name.strip() if name else None
+
+        # Get or create directory entry
+        existing_entry = nomad_app.directory.find(source_hash_bytes)
+
+        if existing_entry:
+            existing_entry.display_name = new_name if new_name else f"Peer {conv_hash[:8]}"
+            nomad_app.directory.save_to_disk()
+        else:
+            # Create new entry with UNKNOWN trust
+            entry = DirectoryEntry(
+                source_hash_bytes,
+                new_name if new_name else f"Peer {conv_hash[:8]}",
+                DirectoryEntry.UNKNOWN
+            )
+            nomad_app.directory.remember(entry)
+
+        RNS.log(f"WebUI: Updated display name for {conv_hash[:16]}... to '{new_name}'", RNS.LOG_NOTICE)
+
+    except Exception as e:
+        RNS.log(f"WebUI: Error updating display name: {e}", RNS.LOG_ERROR)
+
+    return RedirectResponse(f"/conversations/{conv_hash}", status_code=302)
+
+
+@router.post("/{conv_hash}/trust")
+async def update_trust_level(
+    request: Request,
+    conv_hash: str,
+    trust_level: int = Form(...)
+):
+    """Update trust level for a conversation peer"""
+    import RNS
+
+    nomad_app = request.app.state.nomad_app
+
+    try:
+        source_hash_bytes = bytes.fromhex(conv_hash)
+
+        # Validate trust level
+        valid_levels = [
+            DirectoryEntry.UNTRUSTED,
+            DirectoryEntry.UNKNOWN,
+            DirectoryEntry.TRUSTED,
+        ]
+        if trust_level not in valid_levels:
+            RNS.log(f"WebUI: Invalid trust level {trust_level}", RNS.LOG_ERROR)
+            return RedirectResponse(f"/conversations/{conv_hash}", status_code=302)
+
+        # Check if entry already exists
+        existing_entry = nomad_app.directory.find(source_hash_bytes)
+
+        RNS.log(f"WebUI: Trust update for {conv_hash[:16]}... existing={existing_entry is not None}, new_level={trust_level}", RNS.LOG_NOTICE)
+
+        if existing_entry:
+            # Update only the trust level on existing entry directly
+            old_level = existing_entry.trust_level
+            existing_entry.trust_level = trust_level
+            # Save without calling remember() to avoid potential issues
+            nomad_app.directory.save_to_disk()
+            RNS.log(f"WebUI: Updated trust level for {conv_hash[:16]}... from {old_level} to {trust_level}", RNS.LOG_NOTICE)
+        else:
+            # Get display name - try from identity app_data first
+            display_name = None
+            app_data = RNS.Identity.recall_app_data(source_hash_bytes)
+            if app_data:
+                try:
+                    import LXMF
+                    display_name = LXMF.display_name_from_app_data(app_data)
+                except:
+                    try:
+                        display_name = app_data.decode('utf-8')
+                    except:
+                        pass
+
+            # Fallback to directory lookup
+            if not display_name:
+                display_name = nomad_app.directory.display_name(source_hash_bytes)
+
+            # If still no name, use a placeholder that isn't "Undefined"
+            if not display_name:
+                display_name = f"Peer {conv_hash[:8]}"
+
+            RNS.log(f"WebUI: Creating new directory entry for {conv_hash[:16]}... name={display_name}", RNS.LOG_NOTICE)
+
+            entry = DirectoryEntry(
+                source_hash_bytes,
+                display_name,
+                trust_level
+            )
+            nomad_app.directory.remember(entry)
+            RNS.log(f"WebUI: Created directory entry for {conv_hash[:16]}...", RNS.LOG_NOTICE)
+
+    except Exception as e:
+        import traceback
+        RNS.log(f"WebUI: Error updating trust level: {e}", RNS.LOG_ERROR)
+        RNS.log(f"WebUI: Traceback: {traceback.format_exc()}", RNS.LOG_DEBUG)
 
     return RedirectResponse(f"/conversations/{conv_hash}", status_code=302)
