@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NomadNet{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+    <nav>
+        <div class="nav-brand">NomadNet</div>
+        <div class="nav-links">
+            <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Home</a>
+            <a href="/network" {% if request.url.path.startswith('/network') %}class="active"{% endif %}>Network</a>
+            <a href="/browse" {% if request.url.path.startswith('/browse') %}class="active"{% endif %}>Browser</a>
+            <a href="/conversations" {% if request.url.path.startswith('/conversations') %}class="active"{% endif %}>
+                Conversations
+                <span id="unread-badge" class="badge" style="display: none;">0</span>
+            </a>
+        </div>
+        {% if request.app.state.config.requires_auth %}
+        <div class="nav-auth">
+            <a href="/logout">Logout</a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <main id="content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer id="status-bar">
+        <span id="connection-status" class="status-disconnected">Disconnected</span>
+        <span id="status-text">Ready</span>
+    </footer>
+
+    <script>
+        // WebSocket connection for real-time updates
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = function() {
+                console.log('WebSocket connected');
+                document.getElementById('connection-status').className = 'status-connected';
+                document.getElementById('connection-status').textContent = 'Connected';
+                reconnectAttempts = 0;
+            };
+
+            ws.onclose = function() {
+                console.log('WebSocket disconnected');
+                document.getElementById('connection-status').className = 'status-disconnected';
+                document.getElementById('connection-status').textContent = 'Disconnected';
+
+                // Attempt to reconnect
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    setTimeout(connectWebSocket, 2000 * reconnectAttempts);
+                }
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'announce_stream':
+                    updateAnnounceStream(data.announces);
+                    break;
+                case 'unread_count':
+                    updateUnreadBadge(data.count);
+                    break;
+                case 'new_message':
+                    // Could show a notification
+                    console.log('New message:', data);
+                    break;
+                case 'conversations_updated':
+                    // Refresh conversations if on that page
+                    if (window.location.pathname.startsWith('/conversations')) {
+                        window.location.reload();
+                    }
+                    break;
+                case 'page_status':
+                    updatePageStatus(data.status);
+                    break;
+                case 'pong':
+                    // Keep-alive response
+                    break;
+            }
+        }
+
+        function updateAnnounceStream(announces) {
+            const container = document.getElementById('announce-stream');
+            if (!container) return;
+
+            container.innerHTML = '';
+            announces.forEach(function(announce) {
+                const link = document.createElement('a');
+                link.href = '/browse/' + announce.hash;
+                link.className = 'announce-entry announce-' + announce.type;
+                link.tabIndex = 0;
+
+                const time = new Date(announce.timestamp * 1000).toLocaleTimeString();
+                const name = announce.name || announce.hash.substring(0, 16) + '...';
+                const typeLabel = {'peer': 'Peer', 'node': 'Node', 'pn': 'Prop.Node'}[announce.type] || announce.type;
+
+                link.innerHTML = `
+                    <span class="announce-time">${time}</span>
+                    <span class="announce-type">${typeLabel}</span>
+                    <span class="announce-name">${name}</span>
+                    <code class="announce-hash">${announce.hash.substring(0, 16)}...</code>
+                    <span class="announce-browse-icon">&#8594;</span>
+                `;
+                container.appendChild(link);
+            });
+        }
+
+        function updateUnreadBadge(count) {
+            const badge = document.getElementById('unread-badge');
+            if (badge) {
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+
+        function updatePageStatus(status) {
+            const statusEl = document.getElementById('status-text');
+            if (statusEl) {
+                statusEl.textContent = status;
+            }
+        }
+
+        // Connect on page load
+        document.addEventListener('DOMContentLoaded', connectWebSocket);
+
+        // Send ping every 30 seconds to keep connection alive
+        setInterval(function() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('ping');
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

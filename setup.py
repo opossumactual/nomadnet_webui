@@ -32,5 +32,8 @@ setuptools.setup(
         'console_scripts': ['nomadnet=nomadnet.nomadnet:main']
     },
     install_requires=["rns>=1.1.3", "lxmf>=0.9.4", "urwid>=2.6.16", "qrcode"],
+    extras_require={
+        "webui": ["fastapi", "uvicorn[standard]", "jinja2", "python-multipart"],
+    },
     python_requires=">=3.7",
 )

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}NomadNet - Home{% endblock %}
+
+{% block content %}
+<div class="home">
+    <h1>NomadNet WebUI</h1>
+
+    <div class="identity-info">
+        <h2>Node Identity</h2>
+        <code>{{ identity.hexhash if identity else 'Not available' }}</code>
+    </div>
+
+    <div class="quick-links">
+        <h2>Quick Links</h2>
+        <ul>
+            <li><a href="/browse">Browse Pages</a></li>
+            <li><a href="/conversations">Conversations</a></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

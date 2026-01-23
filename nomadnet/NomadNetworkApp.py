@@ -71,13 +71,14 @@ class NomadNetworkApp:
         if issubclass(e_type, KeyboardInterrupt):
             sys.__excepthook__(e_type, e_value, e_traceback)
 
-    def __init__(self, configdir = None, rnsconfigdir = None, daemon = False, force_console = False):
+    def __init__(self, configdir = None, rnsconfigdir = None, daemon = False, force_console = False, webui = False):
         self.version       = __version__
         self.enable_client = False
         self.enable_node   = False
         self.identity      = None
 
         self.uimode        = None
+        self.webui_requested = webui
 
         if configdir == None:
             self.configdir = NomadNetworkApp.configdir
@@ -394,9 +395,11 @@ class NomadNetworkApp:
         job_thread.setDaemon(True)
         job_thread.start()
 
-        # Override UI choice from config on --daemon switch
+        # Override UI choice from config on --daemon or --webui switch
         if daemon:
             self.uimode = nomadnet.ui.UI_NONE
+        elif self.webui_requested:
+            self.uimode = nomadnet.ui.UI_WEB
 
         # This stderr redirect is needed to stop urwid
         # from spewing KeyErrors to the console and thus,

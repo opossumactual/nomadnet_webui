@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}NomadNet - Network{% endblock %}
+
+{% block content %}
+<div class="network">
+    <div class="network-sidebar">
+        <div class="panel">
+            <h2>Identity</h2>
+            <code class="identity-hash">{{ identity or 'Not available' }}</code>
+        </div>
+
+        <div class="panel">
+            <h2>Interfaces</h2>
+            {% if interfaces %}
+            <ul class="interface-list">
+                {% for iface in interfaces %}
+                <li class="interface-{{ 'online' if iface.status == 'Online' else 'offline' }}">
+                    <span class="iface-name">{{ iface.name }}</span>
+                    <span class="iface-status">{{ iface.status }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="no-data">No interfaces available</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="network-main">
+        <div class="panel">
+            <h2>Announce Stream</h2>
+            <p class="panel-subtitle">Real-time network activity (updates via WebSocket)</p>
+
+            <div id="announce-stream" class="announce-stream">
+                {% if announces %}
+                {% for announce in announces %}
+                <a href="/browse/{{ announce.hash }}" class="announce-entry announce-{{ announce.type }}" tabindex="0">
+                    <span class="announce-time">{{ announce.timestamp | timestamp_format }}</span>
+                    <span class="announce-type">
+                        {% if announce.type == 'peer' %}Peer
+                        {% elif announce.type == 'node' %}Node
+                        {% elif announce.type == 'pn' %}Prop.Node
+                        {% else %}{{ announce.type }}{% endif %}
+                    </span>
+                    <span class="announce-name">{{ announce.name or (announce.hash[:16] + '...') }}</span>
+                    <code class="announce-hash">{{ announce.hash[:16] }}...</code>
+                    <span class="announce-browse-icon">&#8594;</span>
+                </a>
+                {% endfor %}
+                {% else %}
+                <p class="no-data">No announces yet. Waiting for network activity...</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

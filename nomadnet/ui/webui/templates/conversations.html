@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}NomadNet - Conversations{% endblock %}
+
+{% block content %}
+<div class="conversations">
+    <div class="conv-list">
+        <div class="conv-list-header">
+            <h2>Conversations</h2>
+            <button class="btn-new" title="New Conversation">+</button>
+        </div>
+
+        {% if conversations %}
+        <ul>
+            {% for conv in conversations %}
+            <li class="{% if conv.get('selected') %}selected{% endif %} {% if conv.unread %}unread{% endif %}">
+                <a href="/conversations/{{ conv.hash }}">
+                    <span class="conv-name">{{ conv.name }}</span>
+                    {% if conv.unread %}
+                    <span class="unread-indicator">*</span>
+                    {% endif %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-conversations">No conversations yet</p>
+        {% endif %}
+    </div>
+
+    <div class="conv-detail">
+        {% if selected %}
+        <div class="conv-header">
+            <h3>{{ selected_name }}</h3>
+            <code class="conv-hash">{{ selected }}</code>
+        </div>
+
+        <div class="messages" id="messages">
+            {% if messages %}
+            {% for msg in messages %}
+            <div class="message {% if msg.outgoing %}outgoing{% else %}incoming{% endif %}">
+                <div class="message-content">{{ msg.content }}</div>
+                <div class="message-meta">{{ msg.timestamp }}</div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="no-messages">No messages in this conversation</p>
+            {% endif %}
+        </div>
+
+        <form class="message-form" method="post" action="/conversations/{{ selected }}/send">
+            <textarea name="message" placeholder="Type a message..." rows="2"></textarea>
+            <button type="submit">Send</button>
+        </form>
+        {% else %}
+        <div class="no-selection">
+            <p>Select a conversation to view messages</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

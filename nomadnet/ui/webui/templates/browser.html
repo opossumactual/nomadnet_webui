@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}NomadNet - Browser{% endblock %}
+
+{% block content %}
+<div class="browser">
+    <div class="browser-toolbar">
+        <button onclick="history.back()" title="Back">&larr;</button>
+        <button onclick="history.forward()" title="Forward">&rarr;</button>
+        <button hx-get="{{ request.url.path }}" hx-target="#page-content" title="Refresh">&#8635;</button>
+
+        <form class="url-bar" action="/browse" method="get" onsubmit="return navigateTo(this)">
+            <input type="text" name="url" id="url-input"
+                   value="{{ destination }}{{ path }}"
+                   placeholder="destination_hash/path">
+            <button type="submit">Go</button>
+        </form>
+    </div>
+
+    <div class="browser-status" id="browser-status">
+        <span class="status-{{ status }}">{{ status }}</span>
+    </div>
+
+    <div class="browser-content" id="page-content">
+        {{ content | safe }}
+    </div>
+</div>
+
+<script>
+function navigateTo(form) {
+    const url = form.url.value.trim();
+    if (url) {
+        window.location.href = '/browse/' + url;
+    }
+    return false;
+}
+</script>
+{% endblock %}
