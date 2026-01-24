@@ -134,19 +134,59 @@
         </div>
 
         {% if can_send %}
-        <form class="message-form" method="post" action="/conversations/{{ selected }}/send" id="message-form">
+        <form class="message-form" id="message-form">
             <textarea name="message" placeholder="Type a message... (Enter to send, Shift+Enter for newline)" rows="2" required id="message-input"></textarea>
             <button type="submit">Send</button>
         </form>
         <script>
-        document.getElementById('message-input').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (this.value.trim()) {
-                    document.getElementById('message-form').submit();
-                }
+        (function() {
+            var form = document.getElementById('message-form');
+            var input = document.getElementById('message-input');
+
+            function sendMessage() {
+                var message = input.value.trim();
+                if (!message) return;
+
+                // Optimistically add message to UI
+                var now = new Date();
+                var timestamp = now.getFullYear() + '-' +
+                    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(now.getDate()).padStart(2, '0') + ' ' +
+                    String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0');
+
+                appendMessage({
+                    content_preview: message,
+                    timestamp: timestamp,
+                    state_icon: '→',
+                    state_class: 'sent'
+                }, true);
+
+                // Clear input
+                input.value = '';
+
+                // Send via fetch
+                fetch('/conversations/{{ selected }}/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'message=' + encodeURIComponent(message)
+                }).catch(function(err) {
+                    console.error('Send failed:', err);
+                });
             }
-        });
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                sendMessage();
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        })();
         </script>
         {% else %}
         <div class="cannot-send">
@@ -167,6 +207,11 @@
 // Current conversation hash (if viewing one)
 var currentConvHash = '{{ selected or "" }}';
 
+// Disable browser scroll restoration so we control scroll position
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+
 // Auto-scroll to bottom of messages
 function scrollToBottom() {
     var messages = document.getElementById('messages');
@@ -176,7 +221,10 @@ function scrollToBottom() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    scrollToBottom();
+    // Use requestAnimationFrame to ensure DOM is fully rendered
+    requestAnimationFrame(function() {
+        scrollToBottom();
+    });
 });
 
 // Name dialog functions

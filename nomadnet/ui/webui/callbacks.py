@@ -189,4 +189,9 @@ def setup_callbacks(webui, manager: "ConnectionManager"):
 
         webui.app.lxmf_delivery = wrapped_lxmf_delivery
 
+        # Re-register the wrapped callback with the message router
+        # The router stores a reference to the callback, so we must update it
+        webui.app.message_router.register_delivery_callback(wrapped_lxmf_delivery)
+        RNS.log("WebUI: Re-registered wrapped lxmf_delivery with message router", RNS.LOG_DEBUG)
+
     return webui.main_display
