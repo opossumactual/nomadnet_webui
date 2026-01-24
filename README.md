@@ -1,10 +1,21 @@
-# Nomad Network - Communicate Freely
+# Nomad Network - Communicate Freely (WebUI Fork)
 
-*This repository is [a public mirror](./MIRROR.md). All development is happening elsewhere.*
+> **This is a fork of [NomadNet](https://github.com/markqvist/NomadNet) that adds a web-based user interface.** All original functionality is preserved, with the WebUI available as an additional option.
 
 Off-grid, resilient mesh communication with strong encryption, forward secrecy and extreme privacy.
 
 ![Screenshot](https://github.com/markqvist/NomadNet/raw/master/docs/screenshots/1.png)
+
+## WebUI Features
+
+This fork adds a browser-based interface to NomadNet, allowing you to:
+
+- View and send messages in conversations
+- Browse the network and see announces in real-time
+- Browse NomadNet pages and nodes
+- Manage your node from any device with a web browser
+
+The WebUI runs alongside the existing NomadNet functionality and uses the same configuration and data storage.
 
 Nomad Network allows you to build private and resilient communications platforms that are in complete control and ownership of the people that use them. No signups, no agreements, no handover of any data, no permissions and gatekeepers.
 
@@ -25,7 +36,71 @@ If you'd rather want to use an LXMF client with a graphical user interface, you 
  - Page caching in browser
 
 ## How do I get started?
-The easiest way to install Nomad Network is via pip:
+
+### Fresh Installation (with WebUI)
+
+```bash
+# Clone this repository
+git clone https://github.com/opossumactual/nomadnet_webui.git
+cd nomadnet_webui
+
+# Install with WebUI support
+pip install -e .[webui]
+
+# Run with WebUI (accessible at http://localhost:8282)
+nomadnet --webui
+
+# Or run the classic text UI
+nomadnet
+
+# Or run as a daemon with no UI
+nomadnet --daemon
+
+# List all options
+nomadnet --help
+```
+
+### Upgrading from Existing NomadNet
+
+If you already have NomadNet installed, you can switch to this fork:
+
+```bash
+# Uninstall the official NomadNet
+pip uninstall nomadnet
+
+# Clone and install this fork
+git clone https://github.com/opossumactual/nomadnet_webui.git
+cd nomadnet_webui
+pip install -e .[webui]
+
+# Run with WebUI
+nomadnet --webui
+```
+
+**Your existing data is preserved.** The WebUI uses the same storage paths:
+- `~/.nomadnetwork/` - Configuration, conversations, pages
+- `~/.reticulum/` - Network configuration and identities
+
+### WebUI Configuration
+
+The WebUI binds to `localhost:8282` by default. You can configure it in `~/.nomadnetwork/config`:
+
+```ini
+[webui]
+# Bind address (use 0.0.0.0 to allow remote access)
+bind = 127.0.0.1
+
+# Port number
+port = 8282
+
+# Password (required if bind is not localhost)
+# If not set and remote access is enabled, a password will be auto-generated
+# password = your_secure_password
+```
+
+### Installing via pip (Original Method)
+
+The original installation method still works for the text UI:
 
 ```bash
 # Install Nomad Network and dependencies
@@ -88,9 +163,34 @@ You can install Nomad Network on Android using Termux, but there's a few more co
 
 For a native Android application with a graphical user interface, have a look at [Sideband](https://github.com/markqvist/Sideband).
 
-### Docker Images
+### Docker Images (with WebUI)
 
-Nomad Network is automatically published as a docker image on Github Packages. Image tags are one of either `master` (for the very latest commit) or the version number (eg `0.2.0`) for a specific release.
+You can run NomadNet with WebUI in Docker:
+
+```sh
+# Clone the repository
+git clone https://github.com/opossumactual/nomadnet_webui.git
+cd nomadnet_webui
+
+# Build the Docker image
+docker build -t nomadnet-webui .
+
+# Run with WebUI (accessible at http://localhost:8282)
+docker run -d \
+  -v ~/.nomadnetwork:/root/.nomadnetwork \
+  -v ~/.reticulum:/root/.reticulum \
+  --network host \
+  nomadnet-webui
+
+# Or use docker-compose for easier management
+docker compose up -d
+```
+
+The included `docker-compose.yml` mounts the WebUI templates and static files for live development.
+
+### Docker Images (Original)
+
+The original NomadNet is also published as a docker image on Github Packages:
 
 ```sh
 $ docker pull ghcr.io/markqvist/nomadnet:master
@@ -105,7 +205,7 @@ $ docker run -it ghcr.io/markqvist/nomadnet:master --textui
 $ docker run -d \
   -v /local/path/nomadnetconfigdir/:/root/.nomadnetwork/ \
   -v /local/path/reticulumconfigdir/:/root/.reticulum/ \
-  --network host
+  --network host \
   ghcr.io/markqvist/nomadnet:master
 
 # You can also keep the network of the container isolated from the host, but you
