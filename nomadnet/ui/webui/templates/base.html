@@ -120,6 +120,9 @@
                 case 'conversations_updated':
                     handleConversationsUpdated(data, handled);
                     break;
+                case 'conversation_read':
+                    handleConversationRead(data);
+                    break;
                 case 'page_status':
                     updatePageStatus(data.status);
                     break;
@@ -134,6 +137,21 @@
             if (customHandled) return;
 
             console.log('New message in conversation:', data.conversation_hash);
+        }
+
+        function handleConversationRead(data) {
+            // Remove unread indicator from sidebar
+            var convLink = document.querySelector('.conv-list a[href="/conversations/' + data.conversation_hash + '"]');
+            if (convLink) {
+                var li = convLink.parentElement;
+                if (li) {
+                    li.classList.remove('unread');
+                }
+                var indicator = convLink.querySelector('.unread-indicator');
+                if (indicator) {
+                    indicator.remove();
+                }
+            }
         }
 
         function handleNewMessageDetail(data, customHandled) {

@@ -59,6 +59,22 @@ class ConversationsDisplay:
         self._previous_unread: Set[str] = set()
         self._initialize_unread_tracking()
 
+    def mark_conversation_read(self, conv_hash: str):
+        """Remove conversation from unread tracking when user views it"""
+        self._previous_unread.discard(conv_hash)
+
+    def broadcast_read(self, conv_hash: str):
+        """Broadcast that a conversation has been marked as read"""
+        from nomadnet.Conversation import Conversation
+        # Get updated unread count
+        conv_list = Conversation.conversation_list(self.app)
+        unread_count = sum(1 for c in conv_list if c[4])
+
+        self.manager.broadcast_sync("conversation_read", {
+            "conversation_hash": conv_hash
+        })
+        self.manager.broadcast_sync("unread_count", {"count": unread_count})
+
     def _initialize_unread_tracking(self):
         """Initialize tracking of which conversations are unread"""
         try:
@@ -153,6 +169,9 @@ def setup_callbacks(webui, manager: "ConnectionManager"):
 
     # Store reference to conversations display for message notifications
     conversations_display = webui.main_display.sub_displays.conversations_display
+
+    # Also store in FastAPI app state so routes can access it
+    webui.fastapi_app.state.conversations_display = conversations_display
 
     # Wrap the lxmf_delivery function to capture message details
     if _original_lxmf_delivery is None and hasattr(webui.app, 'lxmf_delivery'):

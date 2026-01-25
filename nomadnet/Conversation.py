@@ -70,7 +70,8 @@ class Conversation:
             conversation = Conversation.cached_conversations[RNS.hexrep(source_hash, delimit=False)]
             conversation.scan_storage()
 
-        if not source_hash in Conversation.unread_conversations:
+        # Only mark as unread for incoming messages, not ones we send
+        if not originator and not source_hash in Conversation.unread_conversations:
             Conversation.unread_conversations[source_hash] = True
             try:
                 dirname = RNS.hexrep(source_hash, delimit=False)

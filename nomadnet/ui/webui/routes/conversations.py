@@ -346,6 +346,28 @@ async def conversation_detail(request: Request, conv_hash: str):
     can_send = False
 
     try:
+        # Mark as read FIRST (before building conversation list)
+        if nomad_app.conversation_is_unread(conv_hash):
+            nomad_app.mark_conversation_read(conv_hash)
+            # Remove unread file
+            unread_path = nomad_app.conversationpath + "/" + conv_hash + "/unread"
+            if os.path.isfile(unread_path):
+                os.unlink(unread_path)
+            # Update callback tracking so future messages are detected as new
+            if hasattr(request.app.state, 'conversations_display'):
+                request.app.state.conversations_display.mark_conversation_read(conv_hash)
+            # Broadcast read status update via WebSocket
+            ws_manager = request.app.state.ws_manager
+            ws_manager.broadcast_sync("conversation_read", {
+                "conversation_hash": conv_hash
+            })
+            # Also update unread count
+            from nomadnet.Conversation import Conversation as Conv
+            conv_list = Conv.conversation_list(nomad_app)
+            unread_count = sum(1 for c in conv_list if c[4])
+            ws_manager.broadcast_sync("unread_count", {"count": unread_count})
+
+        # Now build conversation list (will reflect updated read state)
         conversations = _build_conversation_list(nomad_app, selected_hash=conv_hash)
 
         # Get selected conversation info
@@ -357,14 +379,6 @@ async def conversation_detail(request: Request, conv_hash: str):
 
         # Load messages
         messages, conversation, can_send = _load_messages(nomad_app, conv_hash)
-
-        # Mark as read
-        if nomad_app.conversation_is_unread(conv_hash):
-            nomad_app.mark_conversation_read(conv_hash)
-            # Remove unread file
-            unread_path = nomad_app.conversationpath + "/" + conv_hash + "/unread"
-            if os.path.isfile(unread_path):
-                os.unlink(unread_path)
 
     except Exception as e:
         RNS.log(f"WebUI: Error loading conversation {conv_hash[:16]}...: {e}", RNS.LOG_ERROR)
@@ -594,3 +608,41 @@ async def update_trust_level(
         RNS.log(f"WebUI: Traceback: {traceback.format_exc()}", RNS.LOG_DEBUG)
 
     return RedirectResponse(f"/conversations/{conv_hash}", status_code=302)
+
+
+@router.post("/{conv_hash}/delete")
+async def delete_conversation(
+    request: Request,
+    conv_hash: str
+):
+    """Delete a conversation"""
+    import RNS
+    from nomadnet.Conversation import Conversation
+
+    nomad_app = request.app.state.nomad_app
+
+    try:
+        # Remove from cached conversations if present
+        if conv_hash in Conversation.cached_conversations:
+            del Conversation.cached_conversations[conv_hash]
+
+        # Remove from unread tracking
+        source_hash_bytes = bytes.fromhex(conv_hash)
+        if source_hash_bytes in Conversation.unread_conversations:
+            del Conversation.unread_conversations[source_hash_bytes]
+
+        # Delete the conversation directory
+        Conversation.delete_conversation(conv_hash, nomad_app)
+
+        RNS.log(f"WebUI: Deleted conversation {conv_hash[:16]}...", RNS.LOG_NOTICE)
+
+        # Update unread count via WebSocket
+        ws_manager = request.app.state.ws_manager
+        conv_list = Conversation.conversation_list(nomad_app)
+        unread_count = sum(1 for c in conv_list if c[4])
+        ws_manager.broadcast_sync("unread_count", {"count": unread_count})
+
+    except Exception as e:
+        RNS.log(f"WebUI: Error deleting conversation: {e}", RNS.LOG_ERROR)
+
+    return RedirectResponse("/conversations", status_code=302)

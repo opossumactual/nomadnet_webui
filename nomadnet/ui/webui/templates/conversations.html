@@ -92,6 +92,7 @@
                         <option value="255" {% if trust_level == 255 %}selected{% endif %}>Trusted</option>
                     </select>
                 </form>
+                <button type="button" class="btn-delete" onclick="showDeleteDialog()" title="Delete conversation">&#128465;</button>
             </div>
             <code class="conv-hash">{{ selected }}</code>
         </div>
@@ -107,6 +108,20 @@
                     <div class="dialog-actions">
                         <button type="submit" class="btn-primary">Save</button>
                         <button type="button" class="btn-secondary" onclick="hideNameDialog()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="delete-dialog" class="dialog-overlay" style="display: none;">
+            <div class="dialog">
+                <h3>Delete Conversation</h3>
+                <p>Are you sure you want to delete this conversation with <strong>{% if selected_name and selected_name != 'Undefined' %}{{ selected_name }}{% else %}{{ selected[:16] }}...{% endif %}</strong>?</p>
+                <p class="warning-text">This will permanently delete all messages.</p>
+                <form method="post" action="/conversations/{{ selected }}/delete">
+                    <div class="dialog-actions">
+                        <button type="submit" class="btn-danger">Delete</button>
+                        <button type="button" class="btn-secondary" onclick="hideDeleteDialog()">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -238,6 +253,20 @@ function showNameDialog() {
 
 function hideNameDialog() {
     var dialog = document.getElementById('name-dialog');
+    if (dialog) {
+        dialog.style.display = 'none';
+    }
+}
+
+function showDeleteDialog() {
+    var dialog = document.getElementById('delete-dialog');
+    if (dialog) {
+        dialog.style.display = 'flex';
+    }
+}
+
+function hideDeleteDialog() {
+    var dialog = document.getElementById('delete-dialog');
     if (dialog) {
         dialog.style.display = 'none';
     }
