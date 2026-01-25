@@ -66,12 +66,13 @@ def create_app(nomad_app, config: WebUIConfig) -> FastAPI:
         return await call_next(request)
 
     # Import and include routers
-    from .routes import browser, conversations, main, api, network
+    from .routes import browser, conversations, main, api, network, settings
 
     app.include_router(main.router)
     app.include_router(browser.router, prefix="/browse")
     app.include_router(conversations.router, prefix="/conversations")
     app.include_router(network.router, prefix="/network")
+    app.include_router(settings.router, prefix="/settings")
     app.include_router(api.router)
 
     # Store the connection manager for use in callbacks

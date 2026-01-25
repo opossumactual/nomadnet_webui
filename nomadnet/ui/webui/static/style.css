@@ -917,6 +917,8 @@ footer {
     flex-direction: column;
     background: var(--bg-panel);
     border: 1px solid var(--border);
+    min-height: 0; /* Allow flex shrinking for proper overflow scroll */
+    overflow: hidden;
 }
 
 .conv-header {
@@ -997,6 +999,7 @@ footer {
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
+    min-height: 0; /* Allow flex shrinking for proper overflow scroll */
 }
 
 .message {
