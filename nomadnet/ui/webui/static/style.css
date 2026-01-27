@@ -1423,6 +1423,10 @@ footer {
     gap: 0.5rem;
 }
 
+.btn-clear-cache {
+    margin-left: auto;
+}
+
 .url-bar input {
     flex: 1;
     background: var(--bg-input);

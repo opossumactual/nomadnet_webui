@@ -165,13 +165,17 @@ def _load_messages(nomad_app, conv_hash):
                 state = msg.lxm.state
                 state_icon, state_class = STATE_ICONS.get(state, ("", ""))
 
-            # Format timestamp
-            timestamp = datetime.fromtimestamp(msg.get_timestamp())
+            # Format timestamp - use lxm timestamp for display, file mtime for sorting
+            display_timestamp = msg.get_timestamp()
+            timestamp = datetime.fromtimestamp(display_timestamp)
+            # sort_timestamp is file modification time - unique and stable
+            file_mtime = msg.sort_timestamp if hasattr(msg, 'sort_timestamp') else display_timestamp
 
             messages.append({
                 "content": msg.get_content(),
                 "title": msg.get_title(),
                 "timestamp": timestamp.strftime("%Y-%m-%d %H:%M"),
+                "sort_timestamp": file_mtime,
                 "outgoing": is_outgoing,
                 "state_icon": state_icon,
                 "state_class": state_class,
@@ -181,8 +185,8 @@ def _load_messages(nomad_app, conv_hash):
             RNS.log(f"WebUI: Error loading message: {e}", RNS.LOG_ERROR)
             continue
 
-    # Sort by timestamp (oldest first)
-    messages.sort(key=lambda m: m["timestamp"])
+    # Sort by timestamp (oldest first) - use raw timestamp for stable ordering
+    messages.sort(key=lambda m: m["sort_timestamp"])
 
     return messages, conversation, can_send
 

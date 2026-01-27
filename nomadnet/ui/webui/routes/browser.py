@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from ..services.page_fetcher import PageFetcher, FetchStatus
 
@@ -48,6 +48,14 @@ async def browser_index(request: Request):
         "status": status,
         "raw_markup": result.markup or ""
     })
+
+
+@router.post("/cache/clear")
+async def clear_cache(request: Request):
+    """Clear the page cache"""
+    fetcher = _get_fetcher(request)
+    fetcher.clear_cache()
+    return JSONResponse({"success": True})
 
 
 @router.get("/{destination:path}", response_class=HTMLResponse)

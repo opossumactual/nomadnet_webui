@@ -15,6 +15,8 @@
                    placeholder="destination_hash/path">
             <button type="submit">Go</button>
         </form>
+
+        <button onclick="clearCache()" title="Clear page cache" class="btn-clear-cache">Clear Cache</button>
     </div>
 
     <div class="browser-status" id="browser-status">
@@ -33,6 +35,21 @@ function navigateTo(form) {
         window.location.href = '/browse/' + url;
     }
     return false;
+}
+
+function clearCache() {
+    fetch('/browse/cache/clear', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Page cache cleared');
+            } else {
+                alert('Failed to clear cache');
+            }
+        })
+        .catch(err => {
+            alert('Error clearing cache: ' + err);
+        });
 }
 </script>
 {% endblock %}
