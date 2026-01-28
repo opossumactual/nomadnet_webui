@@ -58,8 +58,15 @@ function showNodeInfo(hash) {
     fetch('/network/node/' + hash)
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            // Use escapeHtml from base.html
+            var escape = typeof escapeHtml === 'function' ? escapeHtml : function(text) {
+                var div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+
             if (data.error) {
-                document.getElementById('node-info-content').innerHTML = '<div class="error">' + data.error + '</div>';
+                document.getElementById('node-info-content').innerHTML = '<div class="error">' + escape(data.error) + '</div>';
                 return;
             }
 
@@ -67,11 +74,11 @@ function showNodeInfo(hash) {
             var trustClass = data.trust_level === 'trusted' ? 'trust-trusted' : (data.trust_level === 'untrusted' ? 'trust-untrusted' : 'trust-unknown');
 
             var html = '<div class="node-info-details">';
-            html += '<div class="node-info-row"><span class="label">Name:</span><span class="value">' + (data.display_name || 'Unknown') + '</span></div>';
-            html += '<div class="node-info-row"><span class="label">Type:</span><span class="value">' + typeLabel + '</span></div>';
-            html += '<div class="node-info-row"><span class="label">Address:</span><code class="value node-hash">' + data.hash + '</code></div>';
-            html += '<div class="node-info-row"><span class="label">Distance:</span><span class="value">' + data.hops + '</span></div>';
-            html += '<div class="node-info-row"><span class="label">Trust:</span><span class="value ' + trustClass + '">' + data.trust_level + '</span></div>';
+            html += '<div class="node-info-row"><span class="label">Name:</span><span class="value">' + escape(data.display_name || 'Unknown') + '</span></div>';
+            html += '<div class="node-info-row"><span class="label">Type:</span><span class="value">' + escape(typeLabel) + '</span></div>';
+            html += '<div class="node-info-row"><span class="label">Address:</span><code class="value node-hash">' + escape(data.hash) + '</code></div>';
+            html += '<div class="node-info-row"><span class="label">Distance:</span><span class="value">' + escape(String(data.hops)) + '</span></div>';
+            html += '<div class="node-info-row"><span class="label">Trust:</span><span class="value ' + escape(trustClass) + '">' + escape(data.trust_level) + '</span></div>';
             html += '</div>';
 
             html += '<div class="node-info-settings">';
@@ -85,8 +92,8 @@ function showNodeInfo(hash) {
             html += '<div class="dialog-actions">';
             html += '<button type="button" class="btn-primary" onclick="saveNodeSettings()">Save</button>';
             html += '<button type="button" class="btn-secondary" onclick="hideNodeInfo()">Cancel</button>';
-            html += '<a href="/browse/' + data.hash + '" class="btn-secondary">Browse</a>';
-            html += '<a href="/conversations/' + data.hash + '" class="btn-secondary">Message</a>';
+            html += '<a href="/browse/' + encodeURIComponent(data.hash) + '" class="btn-secondary">Browse</a>';
+            html += '<a href="/conversations/' + encodeURIComponent(data.hash) + '" class="btn-secondary">Message</a>';
             html += '</div>';
 
             document.getElementById('node-info-content').innerHTML = html;
@@ -106,10 +113,11 @@ function saveNodeSettings() {
 
     var identifyChecked = document.getElementById('identify-checkbox').checked;
 
+    var csrfToken = '{{ csrf_token }}';
     fetch('/network/node/' + currentNodeHash + '/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identify_on_connect: identifyChecked })
+        body: JSON.stringify({ identify_on_connect: identifyChecked, csrf_token: csrfToken })
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -132,9 +140,15 @@ document.getElementById('node-info-dialog').addEventListener('click', function(e
 });
 
 function showToast(title, message, type) {
+    // Use escapeHtml from base.html if available, otherwise define locally
+    var escape = typeof escapeHtml === 'function' ? escapeHtml : function(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
     var toast = document.createElement('div');
     toast.className = 'toast' + (type ? ' toast-' + type : '');
-    toast.innerHTML = '<div class="toast-header">' + title + '</div><div class="toast-body">' + message + '</div>';
+    toast.innerHTML = '<div class="toast-header">' + escape(title) + '</div><div class="toast-body">' + escape(message) + '</div>';
     document.body.appendChild(toast);
     setTimeout(function() { toast.classList.add('show'); }, 10);
     setTimeout(function() {

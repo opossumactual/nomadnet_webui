@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Request, Form
@@ -8,6 +9,38 @@ import LXMF
 from nomadnet.Directory import DirectoryEntry
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _get_csrf_token(request: Request) -> str:
+    """Get CSRF token for the current session"""
+    session_manager = request.app.state.session_manager
+    session_token = request.cookies.get("webui_session")
+    csrf_token = session_manager.get_csrf_token(session_token)
+    return csrf_token or ""
+
+# Expected hash length for RNS destination hashes (32 bytes = 64 hex chars)
+HASH_LENGTH = 64
+
+
+def _validate_hash(hash_str: str) -> bool:
+    """
+    Validate that a string is a valid RNS hash.
+
+    Args:
+        hash_str: Hex string to validate
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not hash_str or len(hash_str) != HASH_LENGTH:
+        return False
+    try:
+        bytes.fromhex(hash_str)
+        return True
+    except ValueError:
+        return False
+
 
 # Trust level constants match DirectoryEntry
 TRUST_ICONS = {
@@ -211,6 +244,7 @@ async def conversations_list(request: Request):
         "selected": None,
         "messages": [],
         "can_send": False,
+        "csrf_token": _get_csrf_token(request),
     })
 
 
@@ -281,6 +315,7 @@ async def new_conversation_form(request: Request):
         "can_send": False,
         "show_new_form": True,
         "known_peers": known_peers,
+        "csrf_token": _get_csrf_token(request),
     })
 
 
@@ -299,8 +334,9 @@ async def create_conversation(
         # Normalize address
         address = address.strip().lower()
 
-        # Validate hex format
-        bytes.fromhex(address)
+        # Validate hash format and length
+        if not _validate_hash(address):
+            raise ValueError("Invalid hash format or length")
 
         # Add to directory if name provided
         if name.strip():
@@ -328,6 +364,7 @@ async def create_conversation(
             "can_send": False,
             "show_new_form": True,
             "error": "Invalid address format. Must be a hex string.",
+            "csrf_token": _get_csrf_token(request),
         })
 
 
@@ -335,6 +372,7 @@ async def create_conversation(
 async def conversation_detail(request: Request, conv_hash: str):
     """View a specific conversation"""
     import RNS
+    from fastapi.responses import JSONResponse
 
     # Handle "new" explicitly in case route ordering doesn't work
     if conv_hash == "new":
@@ -342,6 +380,18 @@ async def conversation_detail(request: Request, conv_hash: str):
 
     templates = request.app.state.templates
     nomad_app = request.app.state.nomad_app
+
+    # Validate hash parameter
+    if not _validate_hash(conv_hash):
+        return templates.TemplateResponse("conversations.html", {
+            "request": request,
+            "conversations": _build_conversation_list(nomad_app),
+            "selected": None,
+            "messages": [],
+            "can_send": False,
+            "error": "Invalid conversation hash format",
+            "csrf_token": _get_csrf_token(request),
+        })
 
     conversations = []
     messages = []
@@ -395,6 +445,7 @@ async def conversation_detail(request: Request, conv_hash: str):
         "messages": messages,
         "can_send": can_send,
         "trust_level": trust_level,
+        "csrf_token": _get_csrf_token(request),
     })
 
 
@@ -497,7 +548,9 @@ async def sync_status(request: Request):
             "propagation_node_name": pn_name,
         })
     except Exception as e:
-        return JSONResponse({"status": "Error", "error": str(e)}, status_code=500)
+        # Log full error server-side, return generic message to client
+        logger.error(f"Error getting sync status: {e}", exc_info=True)
+        return JSONResponse({"status": "Error", "error": "Failed to retrieve sync status"}, status_code=500)
 
 
 @router.post("/{conv_hash}/name")

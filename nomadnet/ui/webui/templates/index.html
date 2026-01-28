@@ -25,6 +25,7 @@
                 </div>
                 <div class="identity-actions">
                     <form method="post" action="/settings/announce" style="display: inline;" id="announce-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button type="submit" class="btn-announce" id="announce-btn">Announce Now</button>
                     </form>
                 </div>
@@ -61,6 +62,7 @@
         <h3>Edit Display Name</h3>
         <p>This name is broadcast when you announce to the network.</p>
         <form method="post" action="/settings/name">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="form-group">
                 <label for="display-name-input">Display Name</label>
                 <input type="text" name="display_name" id="display-name-input" value="{{ display_name }}" required>
@@ -110,9 +112,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showToast(title, message, type) {
+    // Use escapeHtml from base.html if available, otherwise define locally
+    var escape = typeof escapeHtml === 'function' ? escapeHtml : function(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
     var toast = document.createElement('div');
     toast.className = 'toast' + (type ? ' toast-' + type : '');
-    toast.innerHTML = '<div class="toast-header">' + title + '</div><div class="toast-body">' + message + '</div>';
+    toast.innerHTML = '<div class="toast-header">' + escape(title) + '</div><div class="toast-body">' + escape(message) + '</div>';
     document.body.appendChild(toast);
     setTimeout(function() { toast.classList.add('show'); }, 10);
     setTimeout(function() {

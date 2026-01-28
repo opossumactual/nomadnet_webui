@@ -5,8 +5,8 @@
 {% block content %}
 <div class="browser">
     <div class="browser-toolbar">
-        <button onclick="history.back()" title="Back">&larr;</button>
-        <button onclick="history.forward()" title="Forward">&rarr;</button>
+        <button onclick="history.back()" title="Back" aria-label="Go back">&larr;</button>
+        <button onclick="history.forward()" title="Forward" aria-label="Go forward">&rarr;</button>
         <button hx-get="{{ request.url.path }}" hx-target="#page-content" title="Refresh">&#8635;</button>
 
         <form class="url-bar" action="/browse" method="get" onsubmit="return navigateTo(this)">
@@ -38,7 +38,12 @@ function navigateTo(form) {
 }
 
 function clearCache() {
-    fetch('/browse/cache/clear', { method: 'POST' })
+    var csrfToken = '{{ csrf_token }}';
+    fetch('/browse/cache/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf_token: csrfToken })
+    })
         .then(response => response.json())
         .then(data => {
             if (data.success) {

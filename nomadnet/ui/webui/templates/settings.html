@@ -44,6 +44,7 @@
         <p class="section-desc">Changes take effect immediately without restart.</p>
 
         <form method="post" action="/settings/runtime/display_name" class="settings-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="form-group">
                 <label for="display_name">Display Name</label>
                 <div class="input-group">
@@ -57,6 +58,7 @@
         </form>
 
         <form method="post" action="/settings/runtime/announce" class="settings-form inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn btn-secondary">Announce Now</button>
             <span class="help-text">Broadcast your presence to the network.</span>
         </form>
@@ -67,6 +69,7 @@
         <h2>Client <span class="badge badge-restart">Restart Required</span></h2>
 
         <form method="post" action="/settings/client" class="settings-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="checkbox-list">
                 <div class="form-group checkbox-group">
                     <label>
@@ -162,6 +165,7 @@
         <h2>Node Hosting <span class="badge badge-restart">Restart Required</span></h2>
 
         <form method="post" action="/settings/node" class="settings-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="checkbox-list">
                 <div class="form-group checkbox-group">
                     <label>
@@ -253,6 +257,7 @@
         <h2>Logging <span class="badge badge-restart">Restart Required</span></h2>
 
         <form method="post" action="/settings/logging" class="settings-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="form-group">
                 <label for="loglevel">Log Level</label>
                 <select id="loglevel" name="loglevel">
@@ -279,6 +284,7 @@
         <h2>WebUI <span class="badge badge-restart">Restart Required</span></h2>
 
         <form method="post" action="/settings/webui" class="settings-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="form-row">
                 <div class="form-group">
                     <label for="bind">Bind Address</label>

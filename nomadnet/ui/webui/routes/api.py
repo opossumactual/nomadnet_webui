@@ -1,9 +1,12 @@
 import json
 import asyncio
+import logging
 from typing import Set
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
@@ -39,14 +42,27 @@ class ConnectionManager:
     def broadcast_sync(self, event_type: str, data: dict):
         """Synchronous wrapper for broadcasting (called from non-async code)"""
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.ensure_future(self.broadcast(event_type, data))
-            else:
-                loop.run_until_complete(self.broadcast(event_type, data))
-        except RuntimeError:
-            # No event loop running, create a new one
-            asyncio.run(self.broadcast(event_type, data))
+            # Use get_running_loop() which is the modern, recommended approach
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context, schedule the coroutine
+                asyncio.ensure_future(self.broadcast(event_type, data), loop=loop)
+            except RuntimeError:
+                # No running loop - we're in a sync context
+                # Try to get the event loop for this thread
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Loop exists and is running in another thread
+                        asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), loop)
+                    else:
+                        # Loop exists but not running
+                        loop.run_until_complete(self.broadcast(event_type, data))
+                except RuntimeError:
+                    # No event loop at all, create a new one
+                    asyncio.run(self.broadcast(event_type, data))
+        except Exception as e:
+            logger.warning(f"Failed to broadcast {event_type}: {e}")
 
 
 # Global connection manager instance
@@ -56,6 +72,18 @@ manager = ConnectionManager()
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates"""
+    config = websocket.app.state.config
+
+    # Authenticate WebSocket connection if auth is required
+    if config.requires_auth:
+        session_manager = websocket.app.state.session_manager
+        session_token = websocket.cookies.get("webui_session")
+
+        if not session_manager.validate_session(session_token):
+            # Reject unauthenticated connections
+            await websocket.close(code=4001, reason="Authentication required")
+            return
+
     await manager.connect(websocket)
 
     # Send initial state

@@ -14,6 +14,14 @@ from RNS.vendor.configobj import ConfigObj
 router = APIRouter()
 
 
+def _get_csrf_token(request: Request) -> str:
+    """Get CSRF token for the current session"""
+    session_manager = request.app.state.session_manager
+    session_token = request.cookies.get("webui_session")
+    csrf_token = session_manager.get_csrf_token(session_token)
+    return csrf_token or ""
+
+
 def _get_current_settings(nomad_app):
     """Extract current settings from the app and config"""
     config = nomad_app.config
@@ -119,6 +127,7 @@ async def settings_page(request: Request):
         "config_path": nomad_app.configpath,
         "identity_hash": nomad_app.identity.hexhash if nomad_app.identity else None,
         "lxmf_hash": nomad_app.lxmf_destination.hexhash if nomad_app.lxmf_destination else None,
+        "csrf_token": _get_csrf_token(request),
     })
 
 

@@ -1,4 +1,5 @@
 import asyncio
+import html
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Dict, Any
 
@@ -8,6 +9,14 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from ..services.page_fetcher import PageFetcher, FetchStatus
 
 router = APIRouter()
+
+
+def _get_csrf_token(request: Request) -> str:
+    """Get CSRF token for the current session"""
+    session_manager = request.app.state.session_manager
+    session_token = request.cookies.get("webui_session")
+    csrf_token = session_manager.get_csrf_token(session_token)
+    return csrf_token or ""
 
 # Thread pool for blocking RNS operations
 _executor = ThreadPoolExecutor(max_workers=4)
@@ -46,7 +55,8 @@ async def browser_index(request: Request):
         "path": "/index.mu",
         "content": content,
         "status": status,
-        "raw_markup": result.markup or ""
+        "raw_markup": result.markup or "",
+        "csrf_token": _get_csrf_token(request),
     })
 
 
@@ -84,19 +94,23 @@ async def browse_destination(request: Request, destination: str):
         content = result.html
         status = "ready"
     elif result.status == FetchStatus.TIMEOUT:
+        # Escape dest_hash to prevent XSS
+        safe_dest_hash = html.escape(dest_hash)
         content = f'''
             <div class="error">
                 <h2>Connection Timeout</h2>
-                <p>Could not reach destination <code>{dest_hash}</code></p>
+                <p>Could not reach destination <code>{safe_dest_hash}</code></p>
                 <p>The node may be offline or unreachable.</p>
             </div>
         '''
         status = "timeout"
     else:
+        # Escape error message to prevent XSS
+        safe_error = html.escape(result.error or "Unknown error")
         content = f'''
             <div class="error">
                 <h2>Error Loading Page</h2>
-                <p>{result.error or "Unknown error"}</p>
+                <p>{safe_error}</p>
             </div>
         '''
         status = "error"
@@ -107,7 +121,8 @@ async def browse_destination(request: Request, destination: str):
         "path": path,
         "content": content,
         "status": status,
-        "raw_markup": result.markup or ""
+        "raw_markup": result.markup or "",
+        "csrf_token": _get_csrf_token(request),
     })
 
 
@@ -152,10 +167,12 @@ async def browse_destination_post(request: Request, destination: str):
         content = result.html
         status = "ready"
     else:
+        # Escape error message to prevent XSS
+        safe_error = html.escape(result.error or "Unknown error")
         content = f'''
             <div class="error">
                 <h2>Error</h2>
-                <p>{result.error or "Unknown error"}</p>
+                <p>{safe_error}</p>
             </div>
         '''
         status = "error"
@@ -166,5 +183,6 @@ async def browse_destination_post(request: Request, destination: str):
         "path": path,
         "content": content,
         "status": status,
-        "raw_markup": result.markup or ""
+        "raw_markup": result.markup or "",
+        "csrf_token": _get_csrf_token(request),
     })

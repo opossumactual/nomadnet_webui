@@ -16,7 +16,7 @@
             <a href="/browse" {% if request.url.path.startswith('/browse') %}class="active"{% endif %}>Browser</a>
             <a href="/conversations" {% if request.url.path.startswith('/conversations') %}class="active"{% endif %}>
                 Conversations
-                <span id="unread-badge" class="badge" style="display: none;">0</span>
+                <span id="unread-badge" class="badge" style="display: none;" aria-label="Unread message count">0</span>
             </a>
             <a href="/settings" {% if request.url.path.startswith('/settings') %}class="active"{% endif %}>Settings</a>
         </div>
@@ -70,8 +70,12 @@
             };
 
             ws.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                handleWebSocketMessage(data);
+                try {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                } catch (e) {
+                    console.error('Failed to parse WebSocket message:', e);
+                }
             };
         }
 
@@ -242,13 +246,13 @@
                 const typeLabel = {'peer': 'Peer', 'node': 'Node', 'pn': 'Prop.Node'}[announce.type] || announce.type;
 
                 entry.innerHTML = `
-                    <span class="announce-time">${time}</span>
-                    <span class="announce-type">${typeLabel}</span>
+                    <span class="announce-time">${escapeHtml(time)}</span>
+                    <span class="announce-type">${escapeHtml(typeLabel)}</span>
                     <span class="announce-name">${escapeHtml(name)}</span>
-                    <code class="announce-hash">${announce.hash}</code>
+                    <code class="announce-hash">${escapeHtml(announce.hash)}</code>
                     <span class="announce-actions">
-                        <span onclick="event.stopPropagation(); window.location='/conversations/${announce.hash}'" class="announce-action" title="Message">&#9993;</span>
-                        <span onclick="event.stopPropagation(); window.location='/browse/${announce.hash}'" class="announce-action" title="Browse">&#8594;</span>
+                        <span onclick="event.stopPropagation(); window.location='/conversations/${encodeURIComponent(announce.hash)}'" class="announce-action" title="Message">&#9993;</span>
+                        <span onclick="event.stopPropagation(); window.location='/browse/${encodeURIComponent(announce.hash)}'" class="announce-action" title="Browse">&#8594;</span>
                     </span>
                 `;
                 container.appendChild(entry);

@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -9,6 +10,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 
 from .config import WebUIConfig
+from .services.session import get_session_manager
+
+logger = logging.getLogger(__name__)
 
 
 def timestamp_format(value):
@@ -37,6 +41,7 @@ def create_app(nomad_app, config: WebUIConfig) -> FastAPI:
     # Store references for use in routes
     app.state.nomad_app = nomad_app
     app.state.config = config
+    app.state.session_manager = get_session_manager()
 
     # Set up templates
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -57,9 +62,12 @@ def create_app(nomad_app, config: WebUIConfig) -> FastAPI:
         if request.url.path.startswith("/static") or request.url.path == "/login":
             return await call_next(request)
 
-        # Check session cookie
-        session = request.cookies.get("webui_session")
-        if session != config.effective_password:
+        # Check session cookie using secure session manager
+        session_token = request.cookies.get("webui_session")
+        session_manager = app.state.session_manager
+        session = session_manager.validate_session(session_token)
+
+        if not session:
             if request.url.path != "/login":
                 return RedirectResponse("/login", status_code=302)
 

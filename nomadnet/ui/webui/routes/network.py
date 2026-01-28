@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 
@@ -5,6 +7,15 @@ import RNS
 from nomadnet.Directory import DirectoryEntry
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _get_csrf_token(request: Request) -> str:
+    """Get CSRF token for the current session"""
+    session_manager = request.app.state.session_manager
+    session_token = request.cookies.get("webui_session")
+    csrf_token = session_manager.get_csrf_token(session_token)
+    return csrf_token or ""
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -52,7 +63,8 @@ async def network_index(request: Request):
         "request": request,
         "announces": announces,
         "interfaces": interfaces,
-        "identity": nomad_app.identity.hexhash if nomad_app.identity else None
+        "identity": nomad_app.identity.hexhash if nomad_app.identity else None,
+        "csrf_token": _get_csrf_token(request),
     })
 
 
@@ -119,7 +131,9 @@ async def get_node_info(request: Request, node_hash: str):
         })
 
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
+        # Log full error server-side, return generic message to client
+        logger.error(f"Error getting node info for {node_hash}: {e}", exc_info=True)
+        return JSONResponse({"error": "Failed to retrieve node information"}, status_code=400)
 
 
 @router.post("/node/{node_hash}/settings")
@@ -188,5 +202,7 @@ async def update_node_settings(request: Request, node_hash: str):
         })
 
     except Exception as e:
+        # Log full error server-side, return generic message to client
         RNS.log(f"WebUI: Error updating node settings: {e}", RNS.LOG_ERROR)
-        return JSONResponse({"error": str(e)}, status_code=400)
+        logger.error(f"Error updating node settings for {node_hash}: {e}", exc_info=True)
+        return JSONResponse({"error": "Failed to update node settings"}, status_code=400)

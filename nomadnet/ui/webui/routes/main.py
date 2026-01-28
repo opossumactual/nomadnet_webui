@@ -1,7 +1,30 @@
+import secrets
+
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 router = APIRouter()
+
+
+def _get_csrf_token(request: Request) -> str:
+    """Get CSRF token for the current session"""
+    session_manager = request.app.state.session_manager
+    session_token = request.cookies.get("webui_session")
+    csrf_token = session_manager.get_csrf_token(session_token)
+    return csrf_token or ""
+
+
+def _get_cookie_settings(request: Request) -> dict:
+    """Get secure cookie settings based on config"""
+    config = request.app.state.config
+    settings = {
+        "httponly": True,
+        "samesite": "strict",
+    }
+    # Only set secure flag if not binding to localhost (assumes HTTPS in production)
+    if config.bind != "127.0.0.1":
+        settings["secure"] = True
+    return settings
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -48,6 +71,7 @@ async def index(request: Request):
         "lxmf_hash": lxmf_hash,
         "display_name": display_name,
         "interfaces": interfaces,
+        "csrf_token": _get_csrf_token(request),
     })
 
 
@@ -96,7 +120,8 @@ async def login_page(request: Request):
     templates = request.app.state.templates
     return templates.TemplateResponse("login.html", {
         "request": request,
-        "error": None
+        "error": None,
+        "csrf_token": _get_csrf_token(request),
     })
 
 
@@ -104,22 +129,50 @@ async def login_page(request: Request):
 async def login_submit(request: Request, password: str = Form(...)):
     """Handle login form submission"""
     config = request.app.state.config
+    session_manager = request.app.state.session_manager
 
-    if password == config.effective_password:
+    # Use timing-safe comparison to prevent timing attacks
+    if secrets.compare_digest(password, config.effective_password):
+        # Create secure session token instead of storing password
+        session_token, csrf_token = session_manager.create_session()
+
         response = RedirectResponse("/", status_code=302)
-        response.set_cookie("webui_session", password, httponly=True)
+        cookie_settings = _get_cookie_settings(request)
+        response.set_cookie("webui_session", session_token, **cookie_settings)
         return response
 
     templates = request.app.state.templates
     return templates.TemplateResponse("login.html", {
         "request": request,
-        "error": "Invalid password"
+        "error": "Invalid password",
+        "csrf_token": _get_csrf_token(request),
     })
 
 
 @router.get("/logout")
-async def logout():
+async def logout(request: Request):
     """Clear session and redirect to login"""
+    session_manager = request.app.state.session_manager
+    session_token = request.cookies.get("webui_session")
+
+    # Destroy the server-side session
+    session_manager.destroy_session(session_token)
+
     response = RedirectResponse("/login", status_code=302)
     response.delete_cookie("webui_session")
     return response
+
+
+@router.get("/api/csrf-token")
+async def get_csrf_token(request: Request):
+    """Get CSRF token for the current session"""
+    from fastapi.responses import JSONResponse
+
+    session_manager = request.app.state.session_manager
+    session_token = request.cookies.get("webui_session")
+
+    csrf_token = session_manager.get_csrf_token(session_token)
+    if csrf_token:
+        return JSONResponse({"csrf_token": csrf_token})
+
+    return JSONResponse({"error": "No valid session"}, status_code=401)

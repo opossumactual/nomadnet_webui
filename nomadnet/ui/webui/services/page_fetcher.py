@@ -10,6 +10,7 @@ import threading
 import hashlib
 from typing import Optional, Dict, Any, Callable
 from enum import Enum
+from collections import OrderedDict
 
 import RNS
 
@@ -58,6 +59,7 @@ class PageFetcher:
     LINK_TIMEOUT = 30.0
     REQUEST_TIMEOUT = 60.0
     CACHE_TTL = 300  # 5 minutes
+    CACHE_MAX_SIZE = 100  # Maximum number of cached pages
 
     def __init__(self, app):
         """
@@ -67,7 +69,8 @@ class PageFetcher:
             app: NomadNetworkApp instance
         """
         self.app = app
-        self._cache: Dict[str, tuple] = {}  # url -> (timestamp, markup, fg, bg)
+        # Use OrderedDict for LRU cache implementation
+        self._cache: OrderedDict[str, tuple] = OrderedDict()  # url -> (timestamp, markup, fg, bg)
         self._active_fetches: Dict[str, PageFetchResult] = {}
         self._lock = threading.Lock()
 
@@ -483,22 +486,43 @@ class PageFetcher:
         return fg_color, bg_color
 
     def _get_cached(self, key: str) -> Optional[tuple]:
-        """Get cached page if still valid"""
+        """Get cached page if still valid (LRU cache)"""
         with self._lock:
             if key in self._cache:
                 timestamp, markup, fg, bg = self._cache[key]
                 if time.time() - timestamp < self.CACHE_TTL:
+                    # Move to end (most recently used)
+                    self._cache.move_to_end(key)
                     return (markup, fg, bg)
                 else:
                     del self._cache[key]
         return None
 
     def _set_cached(self, key: str, markup: str, fg: Optional[str], bg: Optional[str]):
-        """Cache a page"""
+        """Cache a page with LRU eviction"""
         with self._lock:
+            # If key exists, remove it first to update its position
+            if key in self._cache:
+                del self._cache[key]
+
+            # Add new entry at the end (most recently used)
             self._cache[key] = (time.time(), markup, fg, bg)
+
+            # Evict oldest entries if cache exceeds max size
+            while len(self._cache) > self.CACHE_MAX_SIZE:
+                # Remove the oldest item (first item in OrderedDict)
+                self._cache.popitem(last=False)
 
     def clear_cache(self):
         """Clear the page cache"""
         with self._lock:
             self._cache.clear()
+
+    def get_cache_stats(self) -> dict:
+        """Get cache statistics for monitoring"""
+        with self._lock:
+            return {
+                "size": len(self._cache),
+                "max_size": self.CACHE_MAX_SIZE,
+                "ttl_seconds": self.CACHE_TTL,
+            }
