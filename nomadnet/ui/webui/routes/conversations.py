@@ -19,8 +19,8 @@ def _get_csrf_token(request: Request) -> str:
     csrf_token = session_manager.get_csrf_token(session_token)
     return csrf_token or ""
 
-# Expected hash length for RNS destination hashes (32 bytes = 64 hex chars)
-HASH_LENGTH = 64
+# Expected hash length for RNS destination hashes (16 bytes = 32 hex chars)
+HASH_LENGTH = 32
 
 
 def _validate_hash(hash_str: str) -> bool:
