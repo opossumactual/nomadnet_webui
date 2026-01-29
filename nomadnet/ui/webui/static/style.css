@@ -2436,9 +2436,8 @@ select option {
 
 .micron-line {
     min-height: 1.5em;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    white-space: pre;
+    font-family: 'DejaVu Sans Mono', 'Liberation Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 .micron-heading {
