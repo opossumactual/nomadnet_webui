@@ -741,3 +741,46 @@ async def delete_conversation(
         RNS.log(f"WebUI: Error deleting conversation: {e}", RNS.LOG_ERROR)
 
     return RedirectResponse("/conversations", status_code=302)
+
+
+@router.post("/clear-all")
+async def clear_all_conversations(request: Request):
+    """Delete all conversations"""
+    import RNS
+    from nomadnet.Conversation import Conversation
+
+    nomad_app = request.app.state.nomad_app
+    deleted_count = 0
+
+    try:
+        # Get all conversations
+        conv_list = Conversation.conversation_list(nomad_app)
+
+        for source_hash, display_name, trust_level, sort_name, unread in conv_list:
+            try:
+                # Remove from cached conversations if present
+                if source_hash in Conversation.cached_conversations:
+                    del Conversation.cached_conversations[source_hash]
+
+                # Remove from unread tracking
+                source_hash_bytes = bytes.fromhex(source_hash)
+                if source_hash_bytes in Conversation.unread_conversations:
+                    del Conversation.unread_conversations[source_hash_bytes]
+
+                # Delete the conversation directory
+                Conversation.delete_conversation(source_hash, nomad_app)
+                deleted_count += 1
+
+            except Exception as e:
+                RNS.log(f"WebUI: Error deleting conversation {source_hash[:16]}...: {e}", RNS.LOG_ERROR)
+
+        RNS.log(f"WebUI: Cleared {deleted_count} conversations", RNS.LOG_NOTICE)
+
+        # Update unread count via WebSocket
+        ws_manager = request.app.state.ws_manager
+        ws_manager.broadcast_sync("unread_count", {"count": 0})
+
+    except Exception as e:
+        RNS.log(f"WebUI: Error clearing conversations: {e}", RNS.LOG_ERROR)
+
+    return RedirectResponse("/conversations", status_code=302)

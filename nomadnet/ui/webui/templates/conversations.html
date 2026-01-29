@@ -8,6 +8,9 @@
         <div class="conv-list-header">
             <h2>Conversations</h2>
             <div class="conv-list-actions">
+                {% if conversations %}
+                <button type="button" class="btn-clear-all" onclick="showClearAllDialog()" title="Clear all conversations" aria-label="Clear all conversations">&#128465;</button>
+                {% endif %}
                 <a href="/conversations/new" class="btn-new" title="New Conversation" aria-label="Start new conversation">+</a>
             </div>
         </div>
@@ -222,6 +225,31 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Clear All Confirmation Dialog -->
+<div id="clear-all-dialog" class="dialog-overlay" style="display: none;">
+    <div class="dialog">
+        <h3>Clear All Conversations</h3>
+        <p>Are you sure you want to delete <strong>all {{ conversations|length }} conversations</strong>?</p>
+        <p class="warning-text">This will permanently delete all messages and cannot be undone.</p>
+        <form method="post" action="/conversations/clear-all">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="dialog-actions">
+                <button type="submit" class="btn-danger">Delete All</button>
+                <button type="button" class="btn-secondary" onclick="hideClearAllDialog()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showClearAllDialog() {
+    document.getElementById('clear-all-dialog').style.display = 'flex';
+}
+function hideClearAllDialog() {
+    document.getElementById('clear-all-dialog').style.display = 'none';
+}
+</script>
 
 <script>
 // Current conversation hash (if viewing one)
