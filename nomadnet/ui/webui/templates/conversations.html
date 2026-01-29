@@ -329,6 +329,49 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        // Handler for new conversation created
+        addWsMessageHandler('conversation_created', function(data) {
+            console.log('Conversations: Received conversation_created', data);
+
+            // Check if conversation already exists in list
+            var existingLink = document.querySelector('.conv-list a[href="/conversations/' + data.hash + '"]');
+            if (existingLink) {
+                console.log('Conversations: Conversation already in list');
+                return;
+            }
+
+            // Get or create the ul element
+            var convList = document.querySelector('.conv-list ul');
+            if (!convList) {
+                // Remove "no conversations" message if present
+                var noConvs = document.querySelector('.no-conversations');
+                if (noConvs) {
+                    noConvs.remove();
+                }
+                // Create the ul element
+                convList = document.createElement('ul');
+                var convListDiv = document.querySelector('.conv-list');
+                if (convListDiv) {
+                    convListDiv.appendChild(convList);
+                } else {
+                    console.error('Conversations: .conv-list not found');
+                    return;
+                }
+            }
+
+            // Create new conversation list item
+            var li = document.createElement('li');
+            var a = document.createElement('a');
+            a.href = '/conversations/' + encodeURIComponent(data.hash);
+            a.innerHTML = '<span class="trust-icon trust-unknown">?</span>' +
+                          '<span class="conv-name">' + escapeHtml(data.display_name) + '</span>';
+            li.appendChild(a);
+
+            // Add to top of list
+            convList.insertBefore(li, convList.firstChild);
+            console.log('Conversations: Added new conversation to list');
+        });
+
         console.log('Conversations: WebSocket handlers registered for conv:', currentConvHash);
     } else {
         console.error('Conversations: addWsMessageHandler not available');

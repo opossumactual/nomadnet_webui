@@ -350,6 +350,23 @@ async def create_conversation(
         # Create conversation (initiator=True creates the directory)
         Conversation(address, nomad_app, initiator=True)
 
+        # Broadcast new conversation event via WebSocket
+        display_name = name.strip() if name.strip() else None
+        if not display_name:
+            # Try to get name from directory
+            try:
+                dir_entry = nomad_app.directory.find(bytes.fromhex(address))
+                if dir_entry and dir_entry.display_name:
+                    display_name = dir_entry.display_name
+            except Exception:
+                pass
+
+        ws_manager = request.app.state.ws_manager
+        ws_manager.broadcast_sync("conversation_created", {
+            "hash": address,
+            "display_name": display_name or address[:16] + "...",
+        })
+
         return RedirectResponse(f"/conversations/{address}", status_code=302)
 
     except ValueError:
@@ -400,7 +417,32 @@ async def conversation_detail(request: Request, conv_hash: str):
     can_send = False
 
     try:
-        # Mark as read FIRST (before building conversation list)
+        from nomadnet.Conversation import Conversation as Conv
+
+        # Check if this is a new conversation (doesn't exist yet)
+        existing_convs = {c[0] for c in Conv.conversation_list(nomad_app)}
+        is_new_conversation = conv_hash not in existing_convs
+
+        # Load messages FIRST - this creates the conversation if it doesn't exist
+        messages, conversation, can_send = _load_messages(nomad_app, conv_hash)
+
+        # If this was a new conversation, broadcast WebSocket event
+        if is_new_conversation:
+            display_name = None
+            try:
+                dir_entry = nomad_app.directory.find(bytes.fromhex(conv_hash))
+                if dir_entry and dir_entry.display_name:
+                    display_name = dir_entry.display_name
+            except Exception:
+                pass
+
+            ws_manager = request.app.state.ws_manager
+            ws_manager.broadcast_sync("conversation_created", {
+                "hash": conv_hash,
+                "display_name": display_name or conv_hash[:16] + "...",
+            })
+
+        # Mark as read (after conversation exists)
         if nomad_app.conversation_is_unread(conv_hash):
             nomad_app.mark_conversation_read(conv_hash)
             # Remove unread file
@@ -416,12 +458,11 @@ async def conversation_detail(request: Request, conv_hash: str):
                 "conversation_hash": conv_hash
             })
             # Also update unread count
-            from nomadnet.Conversation import Conversation as Conv
             conv_list = Conv.conversation_list(nomad_app)
             unread_count = sum(1 for c in conv_list if c[4])
             ws_manager.broadcast_sync("unread_count", {"count": unread_count})
 
-        # Now build conversation list (will reflect updated read state)
+        # Now build conversation list (after conversation is created)
         conversations = _build_conversation_list(nomad_app, selected_hash=conv_hash)
 
         # Get selected conversation info
@@ -430,9 +471,6 @@ async def conversation_detail(request: Request, conv_hash: str):
                 selected_name = conv["name"]
                 trust_level = conv["trust_level"]
                 break
-
-        # Load messages
-        messages, conversation, can_send = _load_messages(nomad_app, conv_hash)
 
     except Exception as e:
         RNS.log(f"WebUI: Error loading conversation {conv_hash[:16]}...: {e}", RNS.LOG_ERROR)
