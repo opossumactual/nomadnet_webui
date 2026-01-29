@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="signal" data-effect="waveform">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,6 +37,33 @@
     </footer>
 
     <script>
+        // Theme and Effect Management
+        (function() {
+            // Apply saved theme/effect immediately to prevent flash
+            const savedTheme = localStorage.getItem('nomadnet-theme') || 'signal';
+            const savedEffect = localStorage.getItem('nomadnet-effect') || 'waveform';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.documentElement.setAttribute('data-effect', savedEffect);
+        })();
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('nomadnet-theme', theme);
+        }
+
+        function setEffect(effect) {
+            document.documentElement.setAttribute('data-effect', effect);
+            localStorage.setItem('nomadnet-effect', effect);
+        }
+
+        function getTheme() {
+            return localStorage.getItem('nomadnet-theme') || 'signal';
+        }
+
+        function getEffect() {
+            return localStorage.getItem('nomadnet-effect') || 'waveform';
+        }
+
         // WebSocket connection for real-time updates
         let ws = null;
         let reconnectAttempts = 0;

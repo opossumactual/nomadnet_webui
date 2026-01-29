@@ -8,8 +8,152 @@
         <h2>Announce Stream</h2>
         <p class="panel-subtitle">Real-time network activity (updates via WebSocket)</p>
 
+        <!-- Effect: Waveform (default) -->
         <div class="waveform-container">
             <div class="waveform"></div>
+            <div class="waveform-secondary"></div>
+        </div>
+
+        <!-- Effect: Radar Sweep -->
+        <div class="radar-container">
+            <div class="radar-wrapper">
+                <div class="radar-grid"></div>
+                <div class="radar-crosshair"></div>
+                <div class="radar-sweep"></div>
+                <div class="radar-ping"></div>
+                <div class="radar-ping"></div>
+                <div class="radar-ping"></div>
+                <div class="radar-center"></div>
+            </div>
+        </div>
+
+        <!-- Effect: Data Rain -->
+        <div class="datarain-container">
+            <div class="rain-column"><span>7</span><span>F</span><span>3</span><span>A</span><span>9</span></div>
+            <div class="rain-column"><span>E</span><span>2</span><span>B</span><span>8</span><span>1</span></div>
+            <div class="rain-column"><span>4</span><span>C</span><span>6</span><span>D</span><span>0</span></div>
+            <div class="rain-column"><span>A</span><span>1</span><span>F</span><span>5</span><span>9</span></div>
+            <div class="rain-column"><span>3</span><span>8</span><span>E</span><span>2</span><span>B</span></div>
+            <div class="rain-column"><span>C</span><span>7</span><span>0</span><span>4</span><span>D</span></div>
+            <div class="rain-column"><span>6</span><span>F</span><span>A</span><span>1</span><span>8</span></div>
+            <div class="rain-column"><span>9</span><span>2</span><span>5</span><span>E</span><span>3</span></div>
+            <div class="rain-column"><span>B</span><span>4</span><span>7</span><span>C</span><span>0</span></div>
+            <div class="rain-column"><span>D</span><span>8</span><span>1</span><span>6</span><span>F</span></div>
+            <div class="rain-column"><span>2</span><span>A</span><span>9</span><span>3</span><span>E</span></div>
+            <div class="rain-column"><span>5</span><span>0</span><span>B</span><span>7</span><span>4</span></div>
+            <div class="rain-column"><span>8</span><span>C</span><span>2</span><span>F</span><span>6</span></div>
+            <div class="rain-column"><span>1</span><span>D</span><span>4</span><span>A</span><span>7</span></div>
+        </div>
+
+        <!-- Effect: Pulse Grid -->
+        <div class="pulse-container">
+            <div class="pulse-wrapper">
+                <div class="pulse-line"></div>
+                <div class="pulse-line"></div>
+                <div class="pulse-line"></div>
+                <div class="pulse-line"></div>
+                <div class="pulse-dot"></div>
+                <div class="pulse-dot"></div>
+                <div class="pulse-dot"></div>
+                <div class="pulse-dot"></div>
+                <div class="pulse-center">
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-core"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Effect: Mesh Grid -->
+        <div class="meshgrid-container">
+            <div class="meshgrid-glow"></div>
+            <div class="meshgrid-wrapper">
+                <div class="meshgrid-lines"></div>
+            </div>
+        </div>
+
+        <!-- Effect: Constellation -->
+        <div class="constellation-container">
+            <div class="constellation-wrapper">
+                <!-- Nodes -->
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <div class="constellation-node"></div>
+                <!-- Lines connecting nodes -->
+                <div class="constellation-line"></div>
+                <div class="constellation-line"></div>
+                <div class="constellation-line"></div>
+                <div class="constellation-line"></div>
+                <div class="constellation-line"></div>
+                <div class="constellation-line"></div>
+                <div class="constellation-line"></div>
+                <div class="constellation-line"></div>
+                <div class="constellation-line"></div>
+            </div>
+        </div>
+
+        <!-- Effect: Hexagon Grid -->
+        <div class="hexgrid-container">
+            <div class="hexgrid-wrapper">
+                {% for i in range(60) %}
+                <div class="hex-cell"></div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Effect: Reticulum -->
+        <div class="reticulum-container">
+            <div class="reticulum-wrapper">
+                <!-- Extended network outside circle -->
+                <div class="reticulum-extended">
+                    <div class="reticulum-ext-node"></div>
+                    <div class="reticulum-ext-node"></div>
+                    <div class="reticulum-ext-node"></div>
+                    <div class="reticulum-ext-node"></div>
+                    <div class="reticulum-ext-line"></div>
+                    <div class="reticulum-ext-line"></div>
+                    <div class="reticulum-ext-line"></div>
+                    <div class="reticulum-ext-line"></div>
+                </div>
+                <!-- Main circle with network -->
+                <div class="reticulum-circle">
+                    <!-- SVG lines connecting nodes -->
+                    <div class="reticulum-lines">
+                        <svg viewBox="0 0 80 80">
+                            <line x1="22" y1="15" x2="38" y2="27"/>
+                            <line x1="38" y1="27" x2="58" y2="19"/>
+                            <line x1="18" y1="42" x2="38" y2="27"/>
+                            <line x1="38" y1="27" x2="46" y2="47"/>
+                            <line x1="46" y1="47" x2="66" y2="38"/>
+                            <line x1="18" y1="42" x2="30" y2="58"/>
+                            <line x1="30" y1="58" x2="46" y2="47"/>
+                            <line x1="46" y1="47" x2="50" y2="62"/>
+                            <line x1="30" y1="58" x2="38" y2="70"/>
+                            <line x1="50" y1="62" x2="38" y2="70"/>
+                        </svg>
+                    </div>
+                    <!-- Network nodes -->
+                    <div class="reticulum-node large"></div>
+                    <div class="reticulum-node medium"></div>
+                    <div class="reticulum-node small"></div>
+                    <div class="reticulum-node medium"></div>
+                    <div class="reticulum-node large"></div>
+                    <div class="reticulum-node small"></div>
+                    <div class="reticulum-node medium"></div>
+                    <div class="reticulum-node small"></div>
+                    <div class="reticulum-node medium"></div>
+                </div>
+            </div>
         </div>
 
         <div id="announce-stream" class="announce-stream">

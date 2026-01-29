@@ -19,6 +19,46 @@
     <div class="alert alert-success">Peer announce sent.</div>
     {% endif %}
 
+    <!-- Appearance Settings (client-side only) -->
+    <section class="settings-section">
+        <h2>Appearance <span class="badge badge-live">Live</span></h2>
+        <p class="section-desc">Visual preferences stored in your browser.</p>
+
+        <div class="form-group">
+            <label for="theme-select">Theme</label>
+            <select id="theme-select" onchange="setTheme(this.value)">
+                <option value="signal">Signal (Amber)</option>
+                <option value="phosphor">Phosphor (Green)</option>
+                <option value="nord">Nord (Blue)</option>
+                <option value="dracula">Dracula (Purple)</option>
+                <option value="cyberpunk">Cyberpunk (Yellow)</option>
+                <option value="bloodmoon">Bloodmoon (Red)</option>
+                <option value="stealth">Stealth (Muted)</option>
+            </select>
+            <span class="help-text">Color scheme for the interface.</span>
+        </div>
+
+        <div class="form-group">
+            <label for="effect-select">Network Effect</label>
+            <select id="effect-select" onchange="setEffect(this.value)">
+                <option value="constellation">Constellation</option>
+                <option value="datarain">Data Rain</option>
+                <option value="pulse">Pulse</option>
+                <option value="waveform">Waveform</option>
+                <option value="radar">Radar Sweep</option>
+            </select>
+            <span class="help-text">Animation style on the Network page.</span>
+        </div>
+    </section>
+
+    <script>
+        // Set dropdowns to current values on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('theme-select').value = getTheme();
+            document.getElementById('effect-select').value = getEffect();
+        });
+    </script>
+
     <!-- Identity Info -->
     <section class="settings-section">
         <h2>Identity</h2>

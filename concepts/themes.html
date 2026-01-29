@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NomadNet WebUI - Theme Concepts</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Signal Theme (Current - Amber) */
+            --signal-bg: #0f0f0f;
+            --signal-bg-panel: #1a1a1a;
+            --signal-bg-input: #111111;
+            --signal-bg-hover: #222222;
+            --signal-accent: #ffb000;
+            --signal-accent-dim: #cc8d00;
+            --signal-green: #00ff88;
+            --signal-red: #ff3333;
+            --signal-text: #cccccc;
+            --signal-text-dim: #666666;
+            --signal-border: #2a2a2a;
+
+            /* Phosphor Theme (Green CRT) */
+            --phosphor-bg: #050a05;
+            --phosphor-bg-panel: #0a140a;
+            --phosphor-bg-input: #071007;
+            --phosphor-bg-hover: #0f1f0f;
+            --phosphor-accent: #00ff88;
+            --phosphor-accent-dim: #00cc6a;
+            --phosphor-green: #00ff88;
+            --phosphor-red: #ff6b6b;
+            --phosphor-text: #88ffbb;
+            --phosphor-text-dim: #336644;
+            --phosphor-border: #1a3a1a;
+
+            /* Nord Theme (Cool Blue) */
+            --nord-bg: #2e3440;
+            --nord-bg-panel: #3b4252;
+            --nord-bg-input: #2e3440;
+            --nord-bg-hover: #434c5e;
+            --nord-accent: #88c0d0;
+            --nord-accent-dim: #5e9aaa;
+            --nord-green: #a3be8c;
+            --nord-red: #bf616a;
+            --nord-text: #eceff4;
+            --nord-text-dim: #7b88a1;
+            --nord-border: #4c566a;
+
+            /* Bloodmoon Theme (Red Alert) */
+            --blood-bg: #0f0808;
+            --blood-bg-panel: #1a1010;
+            --blood-bg-input: #120a0a;
+            --blood-bg-hover: #2a1515;
+            --blood-accent: #ff4444;
+            --blood-accent-dim: #cc3333;
+            --blood-green: #66ff99;
+            --blood-red: #ff4444;
+            --blood-text: #ddcccc;
+            --blood-text-dim: #775555;
+            --blood-border: #3a2020;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            color: #888;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #555;
+            font-size: 0.8rem;
+            margin-bottom: 3rem;
+        }
+
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .theme-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .theme-card {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        /* Signal Theme Card */
+        .theme-signal {
+            background: var(--signal-bg);
+            border: 1px solid var(--signal-border);
+        }
+        .theme-signal .nav { background: var(--signal-bg-panel); border-bottom: 1px solid var(--signal-border); }
+        .theme-signal .nav-brand { color: var(--signal-accent); }
+        .theme-signal .nav-link { color: var(--signal-text-dim); }
+        .theme-signal .nav-link:hover, .theme-signal .nav-link.active { color: var(--signal-accent); }
+        .theme-signal .status-dot { background: var(--signal-green); box-shadow: 0 0 8px var(--signal-green); }
+        .theme-signal .panel { background: var(--signal-bg-panel); border: 1px solid var(--signal-border); }
+        .theme-signal .panel-header { color: var(--signal-accent); border-bottom: 1px solid var(--signal-border); }
+        .theme-signal .list-item { color: var(--signal-text); border-bottom: 1px solid var(--signal-border); }
+        .theme-signal .list-item:hover { background: var(--signal-bg-hover); }
+        .theme-signal .list-item .meta { color: var(--signal-text-dim); }
+        .theme-signal .badge { background: var(--signal-accent); color: #000; }
+        .theme-signal .input { background: var(--signal-bg-input); border: 1px solid var(--signal-border); color: var(--signal-text); }
+        .theme-signal .input:focus { border-color: var(--signal-accent); box-shadow: 0 0 0 2px rgba(255,176,0,0.2); }
+        .theme-signal .btn-primary { background: var(--signal-accent); color: #000; }
+        .theme-signal .btn-primary:hover { background: var(--signal-accent-dim); }
+        .theme-signal .message.incoming { background: var(--signal-bg-panel); border-left: 2px solid var(--signal-accent); }
+        .theme-signal .message.outgoing { background: var(--signal-bg-hover); border-left: 2px solid var(--signal-green); }
+        .theme-signal .message .time { color: var(--signal-text-dim); }
+        .theme-signal .footer { background: var(--signal-bg-panel); border-top: 1px solid var(--signal-border); color: var(--signal-text-dim); }
+        .theme-signal .theme-name { color: var(--signal-accent); }
+
+        /* Phosphor Theme Card */
+        .theme-phosphor {
+            background: var(--phosphor-bg);
+            border: 1px solid var(--phosphor-border);
+        }
+        .theme-phosphor .nav { background: var(--phosphor-bg-panel); border-bottom: 1px solid var(--phosphor-border); }
+        .theme-phosphor .nav-brand { color: var(--phosphor-accent); text-shadow: 0 0 10px var(--phosphor-accent); }
+        .theme-phosphor .nav-link { color: var(--phosphor-text-dim); }
+        .theme-phosphor .nav-link:hover, .theme-phosphor .nav-link.active { color: var(--phosphor-accent); text-shadow: 0 0 8px var(--phosphor-accent); }
+        .theme-phosphor .status-dot { background: var(--phosphor-green); box-shadow: 0 0 12px var(--phosphor-green); }
+        .theme-phosphor .panel { background: var(--phosphor-bg-panel); border: 1px solid var(--phosphor-border); }
+        .theme-phosphor .panel-header { color: var(--phosphor-accent); border-bottom: 1px solid var(--phosphor-border); text-shadow: 0 0 8px var(--phosphor-accent); }
+        .theme-phosphor .list-item { color: var(--phosphor-text); border-bottom: 1px solid var(--phosphor-border); }
+        .theme-phosphor .list-item:hover { background: var(--phosphor-bg-hover); }
+        .theme-phosphor .list-item .meta { color: var(--phosphor-text-dim); }
+        .theme-phosphor .badge { background: var(--phosphor-accent); color: #000; box-shadow: 0 0 8px var(--phosphor-accent); }
+        .theme-phosphor .input { background: var(--phosphor-bg-input); border: 1px solid var(--phosphor-border); color: var(--phosphor-text); }
+        .theme-phosphor .input:focus { border-color: var(--phosphor-accent); box-shadow: 0 0 0 2px rgba(0,255,136,0.2), 0 0 10px rgba(0,255,136,0.1); }
+        .theme-phosphor .btn-primary { background: var(--phosphor-accent); color: #000; box-shadow: 0 0 10px var(--phosphor-accent); }
+        .theme-phosphor .btn-primary:hover { background: var(--phosphor-accent-dim); }
+        .theme-phosphor .message.incoming { background: var(--phosphor-bg-panel); border-left: 2px solid var(--phosphor-accent); }
+        .theme-phosphor .message.outgoing { background: var(--phosphor-bg-hover); border-left: 2px solid var(--phosphor-text); }
+        .theme-phosphor .message .time { color: var(--phosphor-text-dim); }
+        .theme-phosphor .footer { background: var(--phosphor-bg-panel); border-top: 1px solid var(--phosphor-border); color: var(--phosphor-text-dim); }
+        .theme-phosphor .theme-name { color: var(--phosphor-accent); text-shadow: 0 0 10px var(--phosphor-accent); }
+        /* CRT scanline effect for phosphor */
+        .theme-phosphor::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.15) 2px,
+                rgba(0,0,0,0.15) 4px
+            );
+            pointer-events: none;
+            z-index: 100;
+        }
+        .theme-phosphor {
+            position: relative;
+        }
+
+        /* Nord Theme Card */
+        .theme-nord {
+            background: var(--nord-bg);
+            border: 1px solid var(--nord-border);
+        }
+        .theme-nord .nav { background: var(--nord-bg-panel); border-bottom: 1px solid var(--nord-border); }
+        .theme-nord .nav-brand { color: var(--nord-accent); }
+        .theme-nord .nav-link { color: var(--nord-text-dim); }
+        .theme-nord .nav-link:hover, .theme-nord .nav-link.active { color: var(--nord-accent); }
+        .theme-nord .status-dot { background: var(--nord-green); box-shadow: 0 0 8px var(--nord-green); }
+        .theme-nord .panel { background: var(--nord-bg-panel); border: 1px solid var(--nord-border); }
+        .theme-nord .panel-header { color: var(--nord-accent); border-bottom: 1px solid var(--nord-border); }
+        .theme-nord .list-item { color: var(--nord-text); border-bottom: 1px solid var(--nord-border); }
+        .theme-nord .list-item:hover { background: var(--nord-bg-hover); }
+        .theme-nord .list-item .meta { color: var(--nord-text-dim); }
+        .theme-nord .badge { background: var(--nord-accent); color: var(--nord-bg); }
+        .theme-nord .input { background: var(--nord-bg-input); border: 1px solid var(--nord-border); color: var(--nord-text); }
+        .theme-nord .input:focus { border-color: var(--nord-accent); box-shadow: 0 0 0 2px rgba(136,192,208,0.2); }
+        .theme-nord .btn-primary { background: var(--nord-accent); color: var(--nord-bg); }
+        .theme-nord .btn-primary:hover { background: var(--nord-accent-dim); }
+        .theme-nord .message.incoming { background: var(--nord-bg-panel); border-left: 2px solid var(--nord-accent); }
+        .theme-nord .message.outgoing { background: var(--nord-bg-hover); border-left: 2px solid var(--nord-green); }
+        .theme-nord .message .time { color: var(--nord-text-dim); }
+        .theme-nord .footer { background: var(--nord-bg-panel); border-top: 1px solid var(--nord-border); color: var(--nord-text-dim); }
+        .theme-nord .theme-name { color: var(--nord-accent); }
+
+        /* Bloodmoon Theme Card */
+        .theme-bloodmoon {
+            background: var(--blood-bg);
+            border: 1px solid var(--blood-border);
+        }
+        .theme-bloodmoon .nav { background: var(--blood-bg-panel); border-bottom: 1px solid var(--blood-border); }
+        .theme-bloodmoon .nav-brand { color: var(--blood-accent); }
+        .theme-bloodmoon .nav-link { color: var(--blood-text-dim); }
+        .theme-bloodmoon .nav-link:hover, .theme-bloodmoon .nav-link.active { color: var(--blood-accent); }
+        .theme-bloodmoon .status-dot { background: var(--blood-green); box-shadow: 0 0 8px var(--blood-green); }
+        .theme-bloodmoon .panel { background: var(--blood-bg-panel); border: 1px solid var(--blood-border); }
+        .theme-bloodmoon .panel-header { color: var(--blood-accent); border-bottom: 1px solid var(--blood-border); }
+        .theme-bloodmoon .list-item { color: var(--blood-text); border-bottom: 1px solid var(--blood-border); }
+        .theme-bloodmoon .list-item:hover { background: var(--blood-bg-hover); }
+        .theme-bloodmoon .list-item .meta { color: var(--blood-text-dim); }
+        .theme-bloodmoon .badge { background: var(--blood-accent); color: #fff; }
+        .theme-bloodmoon .input { background: var(--blood-bg-input); border: 1px solid var(--blood-border); color: var(--blood-text); }
+        .theme-bloodmoon .input:focus { border-color: var(--blood-accent); box-shadow: 0 0 0 2px rgba(255,68,68,0.2); }
+        .theme-bloodmoon .btn-primary { background: var(--blood-accent); color: #fff; }
+        .theme-bloodmoon .btn-primary:hover { background: var(--blood-accent-dim); }
+        .theme-bloodmoon .message.incoming { background: var(--blood-bg-panel); border-left: 2px solid var(--blood-accent); }
+        .theme-bloodmoon .message.outgoing { background: var(--blood-bg-hover); border-left: 2px solid var(--blood-green); }
+        .theme-bloodmoon .message .time { color: var(--blood-text-dim); }
+        .theme-bloodmoon .footer { background: var(--blood-bg-panel); border-top: 1px solid var(--blood-border); color: var(--blood-text-dim); }
+        .theme-bloodmoon .theme-name { color: var(--blood-accent); }
+        /* Subtle vignette for bloodmoon */
+        .theme-bloodmoon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%);
+            pointer-events: none;
+            z-index: 100;
+        }
+        .theme-bloodmoon {
+            position: relative;
+        }
+
+        /* Shared component styles */
+        .nav {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            gap: 1.5rem;
+        }
+
+        .nav-brand {
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .nav-link {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            height: 280px;
+        }
+
+        .sidebar {
+            border-right: 1px solid inherit;
+        }
+
+        .panel {
+            margin: 0.75rem;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 600;
+        }
+
+        .list-item {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item .meta {
+            font-size: 0.65rem;
+        }
+
+        .badge {
+            font-size: 0.6rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem;
+            gap: 0.5rem;
+        }
+
+        .messages {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            overflow: hidden;
+        }
+
+        .message {
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            max-width: 85%;
+        }
+
+        .message.outgoing {
+            align-self: flex-end;
+        }
+
+        .message .time {
+            font-size: 0.6rem;
+            margin-top: 0.25rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .btn-primary {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 1rem;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .theme-label {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            z-index: 101;
+        }
+
+        .theme-card {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <h1>NomadNet WebUI Themes</h1>
+    <p class="subtitle">Four distinct color palettes for the mesh network interface</p>
+
+    <div class="theme-grid">
+        <!-- Signal Theme (Current) -->
+        <div class="theme-card theme-signal">
+            <span class="theme-label theme-name">Signal</span>
+            <nav class="nav">
+                <span class="nav-brand">NomadNet</span>
+                <div class="nav-links">
+                    <span class="nav-link">Home</span>
+                    <span class="nav-link active">Messages</span>
+                    <span class="nav-link">Network</span>
+                    <span class="nav-link">Browser</span>
+                </div>
+                <div class="nav-status">
+                    <span class="status-dot"></span>
+                    Connected
+                </div>
+            </nav>
+            <div class="content">
+                <div class="sidebar">
+                    <div class="panel">
+                        <div class="panel-header">Conversations</div>
+                        <div class="list-item">
+                            <span>Ghost_Node</span>
+                            <span class="badge">3</span>
+                        </div>
+                        <div class="list-item">
+                            <span>Relay_Alpha</span>
+                            <span class="meta">2h ago</span>
+                        </div>
+                        <div class="list-item">
+                            <span>MeshPeer_7</span>
+                            <span class="meta">1d ago</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="messages">
+                        <div class="message incoming">
+                            <div>Mesh link established. Signal strength nominal.</div>
+                            <div class="time">14:32</div>
+                        </div>
+                        <div class="message outgoing">
+                            <div>Copy that. Propagating to adjacent nodes.</div>
+                            <div class="time">14:33</div>
+                        </div>
+                        <div class="message incoming">
+                            <div>Confirmed. Network topology updated.</div>
+                            <div class="time">14:35</div>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <input type="text" class="input" placeholder="Type a message...">
+                        <button class="btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <span>Node: a7f3c2d1</span>
+                <span>3 peers connected</span>
+            </div>
+        </div>
+
+        <!-- Phosphor Theme -->
+        <div class="theme-card theme-phosphor">
+            <span class="theme-label theme-name">Phosphor</span>
+            <nav class="nav">
+                <span class="nav-brand">NomadNet</span>
+                <div class="nav-links">
+                    <span class="nav-link">Home</span>
+                    <span class="nav-link active">Messages</span>
+                    <span class="nav-link">Network</span>
+                    <span class="nav-link">Browser</span>
+                </div>
+                <div class="nav-status">
+                    <span class="status-dot"></span>
+                    Connected
+                </div>
+            </nav>
+            <div class="content">
+                <div class="sidebar">
+                    <div class="panel">
+                        <div class="panel-header">Conversations</div>
+                        <div class="list-item">
+                            <span>Ghost_Node</span>
+                            <span class="badge">3</span>
+                        </div>
+                        <div class="list-item">
+                            <span>Relay_Alpha</span>
+                            <span class="meta">2h ago</span>
+                        </div>
+                        <div class="list-item">
+                            <span>MeshPeer_7</span>
+                            <span class="meta">1d ago</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="messages">
+                        <div class="message incoming">
+                            <div>Mesh link established. Signal strength nominal.</div>
+                            <div class="time">14:32</div>
+                        </div>
+                        <div class="message outgoing">
+                            <div>Copy that. Propagating to adjacent nodes.</div>
+                            <div class="time">14:33</div>
+                        </div>
+                        <div class="message incoming">
+                            <div>Confirmed. Network topology updated.</div>
+                            <div class="time">14:35</div>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <input type="text" class="input" placeholder="Type a message...">
+                        <button class="btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <span>Node: a7f3c2d1</span>
+                <span>3 peers connected</span>
+            </div>
+        </div>
+
+        <!-- Nord Theme -->
+        <div class="theme-card theme-nord">
+            <span class="theme-label theme-name">Nord</span>
+            <nav class="nav">
+                <span class="nav-brand">NomadNet</span>
+                <div class="nav-links">
+                    <span class="nav-link">Home</span>
+                    <span class="nav-link active">Messages</span>
+                    <span class="nav-link">Network</span>
+                    <span class="nav-link">Browser</span>
+                </div>
+                <div class="nav-status">
+                    <span class="status-dot"></span>
+                    Connected
+                </div>
+            </nav>
+            <div class="content">
+                <div class="sidebar">
+                    <div class="panel">
+                        <div class="panel-header">Conversations</div>
+                        <div class="list-item">
+                            <span>Ghost_Node</span>
+                            <span class="badge">3</span>
+                        </div>
+                        <div class="list-item">
+                            <span>Relay_Alpha</span>
+                            <span class="meta">2h ago</span>
+                        </div>
+                        <div class="list-item">
+                            <span>MeshPeer_7</span>
+                            <span class="meta">1d ago</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="messages">
+                        <div class="message incoming">
+                            <div>Mesh link established. Signal strength nominal.</div>
+                            <div class="time">14:32</div>
+                        </div>
+                        <div class="message outgoing">
+                            <div>Copy that. Propagating to adjacent nodes.</div>
+                            <div class="time">14:33</div>
+                        </div>
+                        <div class="message incoming">
+                            <div>Confirmed. Network topology updated.</div>
+                            <div class="time">14:35</div>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <input type="text" class="input" placeholder="Type a message...">
+                        <button class="btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <span>Node: a7f3c2d1</span>
+                <span>3 peers connected</span>
+            </div>
+        </div>
+
+        <!-- Bloodmoon Theme -->
+        <div class="theme-card theme-bloodmoon">
+            <span class="theme-label theme-name">Bloodmoon</span>
+            <nav class="nav">
+                <span class="nav-brand">NomadNet</span>
+                <div class="nav-links">
+                    <span class="nav-link">Home</span>
+                    <span class="nav-link active">Messages</span>
+                    <span class="nav-link">Network</span>
+                    <span class="nav-link">Browser</span>
+                </div>
+                <div class="nav-status">
+                    <span class="status-dot"></span>
+                    Connected
+                </div>
+            </nav>
+            <div class="content">
+                <div class="sidebar">
+                    <div class="panel">
+                        <div class="panel-header">Conversations</div>
+                        <div class="list-item">
+                            <span>Ghost_Node</span>
+                            <span class="badge">3</span>
+                        </div>
+                        <div class="list-item">
+                            <span>Relay_Alpha</span>
+                            <span class="meta">2h ago</span>
+                        </div>
+                        <div class="list-item">
+                            <span>MeshPeer_7</span>
+                            <span class="meta">1d ago</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="messages">
+                        <div class="message incoming">
+                            <div>Mesh link established. Signal strength nominal.</div>
+                            <div class="time">14:32</div>
+                        </div>
+                        <div class="message outgoing">
+                            <div>Copy that. Propagating to adjacent nodes.</div>
+                            <div class="time">14:33</div>
+                        </div>
+                        <div class="message incoming">
+                            <div>Confirmed. Network topology updated.</div>
+                            <div class="time">14:35</div>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <input type="text" class="input" placeholder="Type a message...">
+                        <button class="btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <span>Node: a7f3c2d1</span>
+                <span>3 peers connected</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

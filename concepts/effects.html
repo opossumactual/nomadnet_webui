@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NomadNet WebUI - Network Effect Concepts</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0f0f0f;
+            --bg-panel: #1a1a1a;
+            --accent: #ffb000;
+            --green: #00ff88;
+            --text: #cccccc;
+            --text-dim: #666666;
+            --border: #2a2a2a;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #000;
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            color: #888;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #555;
+            font-size: 0.8rem;
+            margin-bottom: 3rem;
+        }
+
+        .effects-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 3rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .effect-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .effect-header {
+            position: relative;
+            height: 120px;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .effect-title {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            background: rgba(0,0,0,0.7);
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+        }
+
+        .effect-description {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            z-index: 10;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            max-width: 60%;
+        }
+
+        /* Announce list styling */
+        .announce-list {
+            padding: 1rem;
+        }
+
+        .announce-entry {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        .announce-entry:last-child {
+            border-bottom: none;
+        }
+
+        .announce-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+        }
+
+        .announce-name {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .announce-type {
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            margin-left: auto;
+        }
+
+        .announce-time {
+            color: var(--text-dim);
+            font-size: 0.65rem;
+        }
+
+        /* ============================================
+           EFFECT 1: Current Waveform
+           ============================================ */
+        .effect-waveform {
+            background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg) 100%);
+        }
+
+        .waveform-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.4;
+        }
+
+        .waveform-svg {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 80px;
+            width: 200%;
+            animation: waveScroll 8s linear infinite;
+        }
+
+        @keyframes waveScroll {
+            0% { transform: translateY(-50%) translateX(0); }
+            100% { transform: translateY(-50%) translateX(-50%); }
+        }
+
+        /* ============================================
+           EFFECT 2: Radar Sweep
+           ============================================ */
+        .effect-radar {
+            background: radial-gradient(circle at center, #0a1a0a 0%, var(--bg) 70%);
+        }
+
+        .radar-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+        }
+
+        .radar-grid {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+            border: 1px solid rgba(0, 255, 136, 0.15);
+            border-radius: 50%;
+        }
+
+        .radar-grid::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            border: 1px solid rgba(0, 255, 136, 0.1);
+            border-radius: 50%;
+        }
+
+        .radar-grid::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 1px solid rgba(0, 255, 136, 0.08);
+            border-radius: 50%;
+        }
+
+        .radar-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180px;
+            height: 1px;
+            background: rgba(0, 255, 136, 0.1);
+            transform: translate(-50%, -50%);
+        }
+
+        .radar-crosshair::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1px;
+            height: 180px;
+            background: rgba(0, 255, 136, 0.1);
+            transform: translate(-50%, -50%);
+        }
+
+        .radar-sweep {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 90px;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.8) 0%, transparent 100%);
+            transform-origin: left center;
+            animation: radarSweep 4s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        @keyframes radarSweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .radar-ping {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--green), 0 0 20px var(--green);
+            animation: radarPing 4s ease-out infinite;
+        }
+
+        .radar-ping:nth-child(1) {
+            top: 25%;
+            left: 60%;
+            animation-delay: 0.5s;
+        }
+
+        .radar-ping:nth-child(2) {
+            top: 65%;
+            left: 30%;
+            animation-delay: 2s;
+        }
+
+        .radar-ping:nth-child(3) {
+            top: 40%;
+            left: 75%;
+            animation-delay: 3.2s;
+        }
+
+        @keyframes radarPing {
+            0%, 20% { opacity: 0; transform: scale(0); }
+            25% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; }
+            100% { opacity: 0; transform: scale(1); }
+        }
+
+        .radar-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        /* ============================================
+           EFFECT 3: Data Rain (Matrix-style)
+           ============================================ */
+        .effect-datarain {
+            background: var(--bg);
+        }
+
+        .datarain-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.6;
+        }
+
+        .rain-column {
+            position: absolute;
+            top: -100%;
+            font-size: 12px;
+            line-height: 1.2;
+            color: var(--green);
+            text-shadow: 0 0 8px var(--green);
+            animation: dataFall linear infinite;
+            opacity: 0.7;
+        }
+
+        .rain-column span {
+            display: block;
+            opacity: 0.3;
+        }
+
+        .rain-column span:last-child {
+            opacity: 1;
+            color: #fff;
+            text-shadow: 0 0 12px #fff, 0 0 20px var(--green);
+        }
+
+        @keyframes dataFall {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(250%); }
+        }
+
+        /* Position rain columns */
+        .rain-column:nth-child(1) { left: 5%; animation-duration: 3s; animation-delay: 0s; }
+        .rain-column:nth-child(2) { left: 12%; animation-duration: 4s; animation-delay: 0.5s; }
+        .rain-column:nth-child(3) { left: 20%; animation-duration: 3.5s; animation-delay: 1s; }
+        .rain-column:nth-child(4) { left: 28%; animation-duration: 4.5s; animation-delay: 0.2s; }
+        .rain-column:nth-child(5) { left: 35%; animation-duration: 3.2s; animation-delay: 1.5s; }
+        .rain-column:nth-child(6) { left: 45%; animation-duration: 4s; animation-delay: 0.8s; }
+        .rain-column:nth-child(7) { left: 55%; animation-duration: 3.8s; animation-delay: 0.3s; }
+        .rain-column:nth-child(8) { left: 62%; animation-duration: 4.2s; animation-delay: 1.2s; }
+        .rain-column:nth-child(9) { left: 72%; animation-duration: 3.3s; animation-delay: 0.6s; }
+        .rain-column:nth-child(10) { left: 80%; animation-duration: 4s; animation-delay: 1.8s; }
+        .rain-column:nth-child(11) { left: 88%; animation-duration: 3.6s; animation-delay: 0.4s; }
+        .rain-column:nth-child(12) { left: 95%; animation-duration: 4.1s; animation-delay: 1.1s; }
+
+        /* ============================================
+           EFFECT 4: Pulse Grid
+           ============================================ */
+        .effect-pulse {
+            background: var(--bg);
+        }
+
+        .pulse-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .pulse-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(255, 176, 0, 0.1) 20%,
+                rgba(255, 176, 0, 0.3) 50%,
+                rgba(255, 176, 0, 0.1) 80%,
+                transparent 100%
+            );
+        }
+
+        .pulse-line:nth-child(1) { top: 20%; }
+        .pulse-line:nth-child(2) { top: 40%; }
+        .pulse-line:nth-child(3) { top: 60%; }
+        .pulse-line:nth-child(4) { top: 80%; }
+
+        .pulse-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+        }
+
+        .pulse-dot:nth-child(5) {
+            top: 20%;
+            animation: pulseDot1 3s ease-in-out infinite;
+        }
+
+        .pulse-dot:nth-child(6) {
+            top: 40%;
+            animation: pulseDot2 3.5s ease-in-out infinite;
+            animation-delay: 0.5s;
+        }
+
+        .pulse-dot:nth-child(7) {
+            top: 60%;
+            animation: pulseDot3 2.8s ease-in-out infinite;
+            animation-delay: 1s;
+        }
+
+        .pulse-dot:nth-child(8) {
+            top: 80%;
+            animation: pulseDot1 3.2s ease-in-out infinite;
+            animation-delay: 1.5s;
+        }
+
+        @keyframes pulseDot1 {
+            0%, 100% { left: 10%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: 90%; opacity: 0; }
+        }
+
+        @keyframes pulseDot2 {
+            0%, 100% { left: 90%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: 10%; opacity: 0; }
+        }
+
+        @keyframes pulseDot3 {
+            0%, 100% { left: 30%; opacity: 0; }
+            10% { opacity: 1; }
+            50% { left: 70%; }
+            90% { opacity: 1; }
+            100% { left: 30%; opacity: 0; }
+        }
+
+        .pulse-center {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            border: 1px solid var(--accent);
+            border-radius: 50%;
+            animation: pulseRing 2s ease-out infinite;
+        }
+
+        .pulse-ring:nth-child(1) {
+            width: 20px;
+            height: 20px;
+            animation-delay: 0s;
+        }
+
+        .pulse-ring:nth-child(2) {
+            width: 20px;
+            height: 20px;
+            animation-delay: 0.5s;
+        }
+
+        .pulse-ring:nth-child(3) {
+            width: 20px;
+            height: 20px;
+            animation-delay: 1s;
+        }
+
+        @keyframes pulseRing {
+            0% {
+                width: 20px;
+                height: 20px;
+                opacity: 1;
+            }
+            100% {
+                width: 100px;
+                height: 100px;
+                opacity: 0;
+            }
+        }
+
+        .pulse-core {
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent);
+            animation: pulseCore 1s ease-in-out infinite;
+        }
+
+        @keyframes pulseCore {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Click to simulate announce */
+        .simulate-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+            background: rgba(255, 176, 0, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .simulate-btn:hover {
+            background: rgba(255, 176, 0, 0.3);
+        }
+
+        /* Effect labels */
+        .effect-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border);
+        }
+
+        .effect-name {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .effect-tag {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            padding: 0.2rem 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Network Feed Effects</h1>
+    <p class="subtitle">Animation concepts for the network announce stream header</p>
+
+    <div class="effects-grid">
+        <!-- Effect 1: Waveform (Current) -->
+        <div class="effect-card">
+            <div class="effect-header effect-waveform">
+                <span class="effect-title">Current</span>
+                <div class="waveform-container">
+                    <svg class="waveform-svg" viewBox="0 0 800 80" preserveAspectRatio="none">
+                        <path
+                            d="M0,40 Q50,10 100,40 T200,40 T300,40 T400,40 T500,40 T600,40 T700,40 T800,40 T900,40 T1000,40 T1100,40 T1200,40 T1300,40 T1400,40 T1500,40 T1600,40"
+                            fill="none"
+                            stroke="rgba(255,176,0,0.5)"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M0,40 Q50,60 100,40 T200,40 T300,40 T400,40 T500,40 T600,40 T700,40 T800,40 T900,40 T1000,40 T1100,40 T1200,40 T1300,40 T1400,40 T1500,40 T1600,40"
+                            fill="none"
+                            stroke="rgba(255,176,0,0.3)"
+                            stroke-width="1"
+                        />
+                    </svg>
+                </div>
+                <p class="effect-description">Scrolling sine wave - the current implementation</p>
+            </div>
+            <div class="announce-list">
+                <div class="announce-entry">
+                    <span class="announce-icon"></span>
+                    <span class="announce-name">MeshNode_Alpha</span>
+                    <span class="announce-type">Node</span>
+                    <span class="announce-time">2s ago</span>
+                </div>
+                <div class="announce-entry">
+                    <span class="announce-icon"></span>
+                    <span class="announce-name">Relay_7f3a</span>
+                    <span class="announce-type">Peer</span>
+                    <span class="announce-time">15s ago</span>
+                </div>
+            </div>
+            <div class="effect-label">
+                <span class="effect-name">Waveform</span>
+                <span class="effect-tag">Subtle / Ambient</span>
+            </div>
+        </div>
+
+        <!-- Effect 2: Radar Sweep -->
+        <div class="effect-card">
+            <div class="effect-header effect-radar">
+                <span class="effect-title">Recommended</span>
+                <button class="simulate-btn" onclick="simulateRadarPing()">Simulate Announce</button>
+                <div class="radar-container">
+                    <div class="radar-grid"></div>
+                    <div class="radar-crosshair"></div>
+                    <div class="radar-sweep"></div>
+                    <div class="radar-ping"></div>
+                    <div class="radar-ping"></div>
+                    <div class="radar-ping"></div>
+                    <div class="radar-center"></div>
+                </div>
+                <p class="effect-description">Sonar sweep with pings for new nodes - fits the "scanning the mesh" theme</p>
+            </div>
+            <div class="announce-list">
+                <div class="announce-entry">
+                    <span class="announce-icon"></span>
+                    <span class="announce-name">MeshNode_Alpha</span>
+                    <span class="announce-type">Node</span>
+                    <span class="announce-time">2s ago</span>
+                </div>
+                <div class="announce-entry">
+                    <span class="announce-icon"></span>
+                    <span class="announce-name">Relay_7f3a</span>
+                    <span class="announce-type">Peer</span>
+                    <span class="announce-time">15s ago</span>
+                </div>
+            </div>
+            <div class="effect-label">
+                <span class="effect-name">Radar Sweep</span>
+                <span class="effect-tag">Thematic / Interactive</span>
+            </div>
+        </div>
+
+        <!-- Effect 3: Data Rain -->
+        <div class="effect-card">
+            <div class="effect-header effect-datarain">
+                <span class="effect-title">Matrix-Style</span>
+                <div class="datarain-container">
+                    <div class="rain-column"><span>7</span><span>F</span><span>3</span><span>A</span><span>9</span></div>
+                    <div class="rain-column"><span>E</span><span>2</span><span>B</span><span>8</span><span>1</span></div>
+                    <div class="rain-column"><span>4</span><span>C</span><span>6</span><span>D</span><span>0</span></div>
+                    <div class="rain-column"><span>A</span><span>1</span><span>F</span><span>5</span><span>9</span></div>
+                    <div class="rain-column"><span>3</span><span>8</span><span>E</span><span>2</span><span>B</span></div>
+                    <div class="rain-column"><span>C</span><span>7</span><span>0</span><span>4</span><span>D</span></div>
+                    <div class="rain-column"><span>6</span><span>F</span><span>A</span><span>1</span><span>8</span></div>
+                    <div class="rain-column"><span>9</span><span>2</span><span>5</span><span>E</span><span>3</span></div>
+                    <div class="rain-column"><span>B</span><span>4</span><span>7</span><span>C</span><span>0</span></div>
+                    <div class="rain-column"><span>D</span><span>8</span><span>1</span><span>6</span><span>F</span></div>
+                    <div class="rain-column"><span>2</span><span>A</span><span>9</span><span>3</span><span>E</span></div>
+                    <div class="rain-column"><span>5</span><span>0</span><span>B</span><span>7</span><span>4</span></div>
+                </div>
+                <p class="effect-description">Falling hex characters representing network data flow</p>
+            </div>
+            <div class="announce-list">
+                <div class="announce-entry">
+                    <span class="announce-icon"></span>
+                    <span class="announce-name">MeshNode_Alpha</span>
+                    <span class="announce-type">Node</span>
+                    <span class="announce-time">2s ago</span>
+                </div>
+                <div class="announce-entry">
+                    <span class="announce-icon"></span>
+                    <span class="announce-name">Relay_7f3a</span>
+                    <span class="announce-type">Peer</span>
+                    <span class="announce-time">15s ago</span>
+                </div>
+            </div>
+            <div class="effect-label">
+                <span class="effect-name">Data Rain</span>
+                <span class="effect-tag">Dramatic / Retro</span>
+            </div>
+        </div>
+
+        <!-- Effect 4: Pulse Grid -->
+        <div class="effect-card">
+            <div class="effect-header effect-pulse">
+                <span class="effect-title">Minimalist</span>
+                <div class="pulse-container">
+                    <div class="pulse-line"></div>
+                    <div class="pulse-line"></div>
+                    <div class="pulse-line"></div>
+                    <div class="pulse-line"></div>
+                    <div class="pulse-dot"></div>
+                    <div class="pulse-dot"></div>
+                    <div class="pulse-dot"></div>
+                    <div class="pulse-dot"></div>
+                    <div class="pulse-center">
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-core"></div>
+                    </div>
+                </div>
+                <p class="effect-description">Clean pulse effect - less busy, more elegant</p>
+            </div>
+            <div class="announce-list">
+                <div class="announce-entry">
+                    <span class="announce-icon"></span>
+                    <span class="announce-name">MeshNode_Alpha</span>
+                    <span class="announce-type">Node</span>
+                    <span class="announce-time">2s ago</span>
+                </div>
+                <div class="announce-entry">
+                    <span class="announce-icon"></span>
+                    <span class="announce-name">Relay_7f3a</span>
+                    <span class="announce-type">Peer</span>
+                    <span class="announce-time">15s ago</span>
+                </div>
+            </div>
+            <div class="effect-label">
+                <span class="effect-name">Pulse Grid</span>
+                <span class="effect-tag">Clean / Modern</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function simulateRadarPing() {
+            const container = document.querySelector('.radar-container');
+            const ping = document.createElement('div');
+            ping.className = 'radar-ping';
+            ping.style.cssText = `
+                top: ${20 + Math.random() * 60}%;
+                left: ${20 + Math.random() * 60}%;
+                animation: radarPingOnce 1.5s ease-out forwards;
+            `;
+            container.appendChild(ping);
+            setTimeout(() => ping.remove(), 1500);
+        }
+
+        // Add one-time ping animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes radarPingOnce {
+                0% { opacity: 0; transform: scale(0); }
+                20% { opacity: 1; transform: scale(1.5); }
+                100% { opacity: 0; transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
