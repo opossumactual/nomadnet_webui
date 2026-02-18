@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}NomadNet{% endblock %}</title>
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
+    <!-- PWA disabled - service worker was caching stale content on iOS -->
+    <!-- <link rel="manifest" href="/manifest.json"> -->
 
-    <!-- iOS PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- iOS Meta Tags (keep for home screen icon) -->
     <meta name="apple-mobile-web-app-title" content="NomadNet">
     <link rel="apple-touch-icon" href="/static/icons/icon-180.png">
 
@@ -375,15 +373,48 @@
         // Connect on page load
         document.addEventListener('DOMContentLoaded', connectWebSocket);
 
-        // Register service worker for PWA
+        // Unregister old service worker and clear caches to stop serving stale content
         if ('serviceWorker' in navigator) {
+            // First, register the self-destructing sw.js to replace any old cached SW
             navigator.serviceWorker.register('/sw.js')
                 .then(function(reg) {
-                    console.log('Service worker registered, scope:', reg.scope);
+                    // Force the new SW to activate immediately
+                    if (reg.waiting) {
+                        reg.waiting.postMessage({type: 'SKIP_WAITING'});
+                    }
+                    reg.addEventListener('updatefound', function() {
+                        var newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', function() {
+                            if (newWorker.state === 'activated') {
+                                console.log('Old service worker replaced and caches cleared');
+                            }
+                        });
+                    });
                 })
                 .catch(function(err) {
-                    console.log('Service worker registration failed:', err);
+                    console.log('SW cleanup failed:', err);
                 });
+
+            // Also directly unregister all service workers as a belt-and-suspenders approach
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (var i = 0; i < registrations.length; i++) {
+                    registrations[i].unregister().then(function(success) {
+                        if (success) console.log('Service worker unregistered');
+                    });
+                }
+            });
+
+            // Clear all caches directly from the page context too
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (var i = 0; i < names.length; i++) {
+                        caches.delete(names[i]);
+                    }
+                    if (names.length > 0) {
+                        console.log('Cleared', names.length, 'cache(s)');
+                    }
+                });
+            }
         }
 
         // Send ping every 15 seconds to keep connection alive
