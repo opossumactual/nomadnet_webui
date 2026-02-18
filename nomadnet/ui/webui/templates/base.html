@@ -77,22 +77,33 @@
             return localStorage.getItem('nomadnet-effect') || 'waveform';
         }
 
-        // WebSocket connection for real-time updates
+        // WebSocket connection with heartbeat for iOS
         let ws = null;
         let reconnectAttempts = 0;
         let reconnectTimer = null;
+        let heartbeatTimer = null;
+        let lastMessageTime = 0;
+
+        function forceReconnect() {
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+            if (ws) {
+                ws.onclose = null;
+                ws.close();
+                ws = null;
+            }
+            reconnectAttempts = 0;
+            connectWebSocket();
+        }
 
         function connectWebSocket() {
-            // Cancel any pending reconnect timer to prevent cascading calls
             if (reconnectTimer) {
                 clearTimeout(reconnectTimer);
                 reconnectTimer = null;
             }
 
-            // Don't reconnect if already open
-            if (ws && ws.readyState === WebSocket.OPEN) return;
-
-            // Clean up any existing connection
             if (ws) {
                 ws.onclose = null;
                 ws.close();
@@ -103,18 +114,15 @@
             ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
             ws.onopen = function() {
-                console.log('WebSocket connected');
                 document.getElementById('connection-status').className = 'status-connected';
                 document.getElementById('connection-status').textContent = 'Connected';
                 reconnectAttempts = 0;
+                lastMessageTime = Date.now();
             };
 
             ws.onclose = function() {
-                console.log('WebSocket disconnected');
                 document.getElementById('connection-status').className = 'status-disconnected';
                 document.getElementById('connection-status').textContent = 'Disconnected';
-
-                // Schedule ONE reconnect with backoff (cap at 30s)
                 reconnectAttempts++;
                 var delay = Math.min(2000 * reconnectAttempts, 30000);
                 reconnectTimer = setTimeout(connectWebSocket, delay);
@@ -125,6 +133,7 @@
             };
 
             ws.onmessage = function(event) {
+                lastMessageTime = Date.now();
                 try {
                     const data = JSON.parse(event.data);
                     handleWebSocketMessage(data);
@@ -134,13 +143,26 @@
             };
         }
 
-        // Reconnect when app/tab becomes visible, but only if not already connected
+        // Always force fresh connection when returning to app/tab
+        // iOS leaves WebSocket in zombie state with readyState still OPEN
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && (!ws || ws.readyState !== WebSocket.OPEN)) {
-                reconnectAttempts = 0;
-                connectWebSocket();
+            if (!document.hidden) {
+                forceReconnect();
             }
         });
+
+        // Heartbeat: send ping every 15s, force reconnect if no response in 20s
+        heartbeatTimer = setInterval(function() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                // If no message received in 20s, connection is dead
+                if (Date.now() - lastMessageTime > 20000) {
+                    console.log('Heartbeat timeout - reconnecting');
+                    forceReconnect();
+                    return;
+                }
+                ws.send('ping');
+            }
+        }, 15000);
 
         // Custom message handler registry - pages can register handlers for specific event types
         var wsMessageHandlers = {};
@@ -355,12 +377,7 @@
                 });
         }
 
-        // Send ping every 30 seconds to keep connection alive
-        setInterval(function() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send('ping');
-            }
-        }, 30000);
+        // Ping interval is handled by heartbeat timer above
     </script>
 </body>
 </html>
