@@ -15,9 +15,13 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
         self._lock = asyncio.Lock()
+        self._loop = None  # Store uvicorn's event loop for cross-thread broadcasting
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
+        # Capture the running event loop (uvicorn's loop) so broadcast_sync
+        # can schedule coroutines from Reticulum's transport thread
+        self._loop = asyncio.get_running_loop()
         async with self._lock:
             self.active_connections.add(websocket)
 
@@ -40,29 +44,11 @@ class ConnectionManager:
             self.active_connections -= dead_connections
 
     def broadcast_sync(self, event_type: str, data: dict):
-        """Synchronous wrapper for broadcasting (called from non-async code)"""
-        try:
-            # Use get_running_loop() which is the modern, recommended approach
-            try:
-                loop = asyncio.get_running_loop()
-                # We're in an async context, schedule the coroutine
-                asyncio.ensure_future(self.broadcast(event_type, data), loop=loop)
-            except RuntimeError:
-                # No running loop - we're in a sync context
-                # Try to get the event loop for this thread
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        # Loop exists and is running in another thread
-                        asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), loop)
-                    else:
-                        # Loop exists but not running
-                        loop.run_until_complete(self.broadcast(event_type, data))
-                except RuntimeError:
-                    # No event loop at all, create a new one
-                    asyncio.run(self.broadcast(event_type, data))
-        except Exception as e:
-            logger.warning(f"Failed to broadcast {event_type}: {e}")
+        """Synchronous wrapper for broadcasting (called from Reticulum's transport thread)"""
+        if self._loop is not None and self._loop.is_running():
+            asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), self._loop)
+        else:
+            logger.warning(f"No event loop available to broadcast {event_type}")
 
 
 # Global connection manager instance
