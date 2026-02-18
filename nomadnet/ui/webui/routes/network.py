@@ -16,6 +16,9 @@ def _resolve_display_name(app_data, source_hash, directory=None):
     # Strategy 1: Parse LXMF app_data
     if app_data:
         try:
+            # msgpack may deserialize bytes as str depending on version/settings
+            if isinstance(app_data, str):
+                app_data = app_data.encode('utf-8')
             name = LXMF.display_name_from_app_data(app_data)
             if name:
                 return name

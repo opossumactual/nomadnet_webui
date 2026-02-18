@@ -34,7 +34,8 @@ class NetworkDisplay:
                 if app_data:
                     try:
                         import LXMF
-                        display_name = LXMF.display_name_from_app_data(app_data)
+                        raw = app_data.encode('utf-8') if isinstance(app_data, str) else app_data
+                        display_name = LXMF.display_name_from_app_data(raw)
                     except Exception:
                         pass
                 # Fallback: check directory entries
