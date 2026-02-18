@@ -4,6 +4,8 @@ import logging
 from typing import Set
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
+import RNS
+import LXMF
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -45,10 +47,11 @@ class ConnectionManager:
 
     def broadcast_sync(self, event_type: str, data: dict):
         """Synchronous wrapper for broadcasting (called from Reticulum's transport thread)"""
+        RNS.log(f"WebUI: broadcast_sync called: {event_type} (loop={self._loop is not None}, connections={len(self.active_connections)})", RNS.LOG_DEBUG)
         if self._loop is not None and self._loop.is_running():
             asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), self._loop)
         else:
-            logger.warning(f"No event loop available to broadcast {event_type}")
+            RNS.log(f"WebUI: No event loop available to broadcast {event_type}", RNS.LOG_WARNING)
 
 
 # Global connection manager instance
@@ -78,15 +81,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Send current announce stream
         if hasattr(nomad_app, 'directory') and nomad_app.directory:
+            from .network import _resolve_display_name
             announces = []
             for entry in nomad_app.directory.announce_stream[:50]:  # Last 50
                 timestamp, source_hash, app_data, announce_type = entry
-                display_name = None
-                if app_data:
-                    try:
-                        display_name = app_data.decode('utf-8')
-                    except:
-                        pass
+                display_name = _resolve_display_name(app_data, source_hash, nomad_app.directory)
 
                 announces.append({
                     "timestamp": timestamp,

@@ -4,6 +4,7 @@ so that NomadNet's core components can notify the WebUI of events.
 """
 
 import time
+import RNS
 from datetime import datetime
 from typing import TYPE_CHECKING, Set, Optional
 
@@ -25,6 +26,7 @@ class NetworkDisplay:
 
     def directory_change_callback(self):
         """Called when the announce stream changes"""
+        RNS.log("WebUI: directory_change_callback FIRED", RNS.LOG_NOTICE)
         # Get the latest announces
         announces = []
         if hasattr(self.app, 'directory') and self.app.directory:
