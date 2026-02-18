@@ -20,20 +20,22 @@ def _resolve_display_name(app_data, source_hash, directory=None):
             if isinstance(app_data, str):
                 app_data = app_data.encode('utf-8')
             name = LXMF.display_name_from_app_data(app_data)
+            RNS.log(f"WebUI DEBUG: app_data type={type(app_data).__name__} len={len(app_data)} first_byte={app_data[0] if app_data else None} result={name!r}", RNS.LOG_NOTICE)
             if name:
                 return name
-        except Exception:
-            pass
+        except Exception as e:
+            RNS.log(f"WebUI DEBUG: LXMF parse failed: {e}, app_data type={type(app_data).__name__}", RNS.LOG_ERROR)
 
     # Strategy 2: Check directory entries
     if directory:
         try:
             hash_bytes = source_hash if isinstance(source_hash, bytes) else bytes.fromhex(source_hash)
             name = directory.display_name(hash_bytes)
+            RNS.log(f"WebUI DEBUG: directory lookup result={name!r}", RNS.LOG_NOTICE)
             if name:
                 return name
-        except Exception:
-            pass
+        except Exception as e:
+            RNS.log(f"WebUI DEBUG: directory lookup failed: {e}", RNS.LOG_ERROR)
 
     return None
 
