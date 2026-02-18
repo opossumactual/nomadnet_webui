@@ -52,27 +52,26 @@ def create_app(nomad_app, config: WebUIConfig) -> FastAPI:
     # Mount static files
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # Auth middleware
+    # No-cache and auth middleware
     @app.middleware("http")
-    async def auth_middleware(request: Request, call_next):
-        # Skip auth for localhost binding
-        if not config.requires_auth:
-            return await call_next(request)
+    async def middleware(request: Request, call_next):
+        # Auth check
+        if config.requires_auth:
+            if not request.url.path.startswith("/static") and request.url.path != "/login":
+                session_token = request.cookies.get("webui_session")
+                session_manager = app.state.session_manager
+                session = session_manager.validate_session(session_token)
+                if not session:
+                    return RedirectResponse("/login", status_code=302)
 
-        # Allow static files and login page
-        if request.url.path.startswith("/static") or request.url.path == "/login":
-            return await call_next(request)
+        response = await call_next(request)
 
-        # Check session cookie using secure session manager
-        session_token = request.cookies.get("webui_session")
-        session_manager = app.state.session_manager
-        session = session_manager.validate_session(session_token)
+        # Prevent Safari from caching HTML pages and service worker
+        if not request.url.path.startswith("/static") or request.url.path.endswith("sw.js"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
 
-        if not session:
-            if request.url.path != "/login":
-                return RedirectResponse("/login", status_code=302)
-
-        return await call_next(request)
+        return response
 
     # Import and include routers
     from .routes import browser, conversations, main, api, network, settings
