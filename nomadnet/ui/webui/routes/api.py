@@ -80,46 +80,10 @@ async def websocket_endpoint(websocket: WebSocket):
             return
 
     await manager.connect(websocket)
+    RNS.log("WebUI: WebSocket accepted, entering receive loop", RNS.LOG_NOTICE)
 
-    # Send initial state
-    try:
-        nomad_app = websocket.app.state.nomad_app
-
-        # Send current announce stream
-        if hasattr(nomad_app, 'directory') and nomad_app.directory:
-            from .network import _resolve_display_name
-            announces = []
-            for entry in nomad_app.directory.announce_stream[:50]:  # Last 50
-                timestamp, source_hash, app_data, announce_type = entry
-                display_name = _resolve_display_name(app_data, source_hash, nomad_app.directory)
-
-                announces.append({
-                    "timestamp": timestamp,
-                    "hash": source_hash.hex() if isinstance(source_hash, bytes) else source_hash,
-                    "name": display_name,
-                    "type": announce_type
-                })
-
-            await websocket.send_text(json.dumps({
-                "type": "announce_stream",
-                "announces": announces
-            }))
-
-        # Send unread conversation count
-        try:
-            from nomadnet.Conversation import Conversation
-            conv_list = Conversation.conversation_list(nomad_app)
-            # conv_list is [(hash, name, trust, sort_name, unread), ...]
-            unread = sum(1 for c in conv_list if c[4])  # index 4 is unread flag
-            await websocket.send_text(json.dumps({
-                "type": "unread_count",
-                "count": unread
-            }))
-        except Exception:
-            pass
-
-    except Exception as e:
-        RNS.log(f"WebUI: Error sending initial state: {e}", RNS.LOG_ERROR)
+    # Skip initial state send - the HTTP page already renders current data.
+    # WebSocket is only for live updates going forward.
 
     # Keep connection alive and handle incoming messages
     try:
