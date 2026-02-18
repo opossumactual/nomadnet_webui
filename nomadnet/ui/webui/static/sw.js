@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nomadnet-v1';
+const CACHE_NAME = 'nomadnet-v2';
 const APP_SHELL = [
   '/',
   '/static/style.css',

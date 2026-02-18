@@ -98,7 +98,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 display_name = None
                 if app_data:
                     try:
-                        display_name = app_data.decode('utf-8')
+                        import LXMF
+                        display_name = LXMF.display_name_from_app_data(app_data)
                     except:
                         pass
 

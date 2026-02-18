@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 
 import RNS
+import LXMF
 from nomadnet.Directory import DirectoryEntry
 
 router = APIRouter()
@@ -32,7 +33,7 @@ async def network_index(request: Request):
             display_name = None
             if app_data:
                 try:
-                    display_name = app_data.decode('utf-8')
+                    display_name = LXMF.display_name_from_app_data(app_data)
                 except:
                     pass
 
@@ -94,7 +95,7 @@ async def get_node_info(request: Request, node_hash: str):
             if source_hash == hash_bytes:
                 if app_data and not display_name:
                     try:
-                        display_name = app_data.decode('utf-8')
+                        display_name = LXMF.display_name_from_app_data(app_data)
                     except:
                         pass
                 node_type = announce_type
@@ -157,7 +158,7 @@ async def update_node_settings(request: Request, node_hash: str):
                 timestamp, source_hash, app_data, announce_type = announce
                 if source_hash == hash_bytes and app_data:
                     try:
-                        display_name = app_data.decode('utf-8')
+                        display_name = LXMF.display_name_from_app_data(app_data)
                     except:
                         pass
                     break
