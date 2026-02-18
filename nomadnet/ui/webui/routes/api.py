@@ -66,6 +66,7 @@ manager = ConnectionManager()
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates"""
+    RNS.log("WebUI: WebSocket endpoint hit", RNS.LOG_NOTICE)
     config = websocket.app.state.config
 
     # Authenticate WebSocket connection if auth is required
@@ -74,7 +75,7 @@ async def websocket_endpoint(websocket: WebSocket):
         session_token = websocket.cookies.get("webui_session")
 
         if not session_manager.validate_session(session_token):
-            # Reject unauthenticated connections
+            RNS.log("WebUI: WebSocket auth REJECTED", RNS.LOG_WARNING)
             await websocket.close(code=4001, reason="Authentication required")
             return
 
