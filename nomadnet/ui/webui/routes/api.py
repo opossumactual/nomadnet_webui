@@ -96,17 +96,21 @@ async def websocket_endpoint(websocket: WebSocket):
             for entry in nomad_app.directory.announce_stream[:50]:  # Last 50
                 timestamp, source_hash, app_data, announce_type = entry
                 display_name = None
-                if app_data:
+                # Try directory entries first (most reliable)
+                if nomad_app.directory:
+                    try:
+                        h = source_hash if isinstance(source_hash, bytes) else (bytes.fromhex(source_hash) if isinstance(source_hash, str) else source_hash)
+                        entry = nomad_app.directory.directory_entries.get(h)
+                        if entry and entry.display_name:
+                            display_name = entry.display_name
+                    except Exception:
+                        pass
+                # Fallback: parse LXMF app_data
+                if not display_name and app_data:
                     try:
                         import LXMF
                         raw = app_data.encode('utf-8') if isinstance(app_data, str) else app_data
                         display_name = LXMF.display_name_from_app_data(raw)
-                    except Exception:
-                        pass
-                # Fallback: check directory entries
-                if not display_name and nomad_app.directory:
-                    try:
-                        display_name = nomad_app.directory.display_name(source_hash)
                     except Exception:
                         pass
 

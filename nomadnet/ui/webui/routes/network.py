@@ -11,31 +11,40 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _normalize_hash(source_hash):
+    """Ensure source_hash is bytes for directory lookups"""
+    if isinstance(source_hash, bytes):
+        return source_hash
+    if isinstance(source_hash, str):
+        try:
+            return bytes.fromhex(source_hash)
+        except ValueError:
+            return source_hash.encode('latin-1')
+    return source_hash
+
+
 def _resolve_display_name(app_data, source_hash, directory=None):
     """Try multiple strategies to resolve a display name from announce data"""
-    # Strategy 1: Parse LXMF app_data
+    # Strategy 1: Check directory entries directly (most reliable)
+    if directory:
+        try:
+            hash_bytes = _normalize_hash(source_hash)
+            entry = directory.directory_entries.get(hash_bytes)
+            if entry and entry.display_name:
+                return entry.display_name
+        except Exception:
+            pass
+
+    # Strategy 2: Parse LXMF app_data
     if app_data:
         try:
-            # msgpack may deserialize bytes as str depending on version/settings
             if isinstance(app_data, str):
                 app_data = app_data.encode('utf-8')
             name = LXMF.display_name_from_app_data(app_data)
-            RNS.log(f"WebUI DEBUG: app_data type={type(app_data).__name__} len={len(app_data)} first_byte={app_data[0] if app_data else None} result={name!r}", RNS.LOG_NOTICE)
             if name:
                 return name
-        except Exception as e:
-            RNS.log(f"WebUI DEBUG: LXMF parse failed: {e}, app_data type={type(app_data).__name__}", RNS.LOG_ERROR)
-
-    # Strategy 2: Check directory entries
-    if directory:
-        try:
-            hash_bytes = source_hash if isinstance(source_hash, bytes) else bytes.fromhex(source_hash)
-            name = directory.display_name(hash_bytes)
-            RNS.log(f"WebUI DEBUG: directory lookup result={name!r}", RNS.LOG_NOTICE)
-            if name:
-                return name
-        except Exception as e:
-            RNS.log(f"WebUI DEBUG: directory lookup failed: {e}", RNS.LOG_ERROR)
+        except Exception:
+            pass
 
     return None
 
