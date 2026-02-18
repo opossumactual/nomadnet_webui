@@ -82,8 +82,12 @@
         let reconnectAttempts = 0;
 
         function connectWebSocket() {
-            // Don't open a new connection if one is already open
-            if (ws && ws.readyState === WebSocket.OPEN) return;
+            // Clean up any existing connection
+            if (ws) {
+                ws.onclose = null;  // Prevent old onclose from firing
+                ws.close();
+                ws = null;
+            }
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
@@ -120,7 +124,7 @@
             };
         }
 
-        // Reconnect immediately when app/tab becomes visible again
+        // Force fresh reconnect when app/tab becomes visible
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden) {
                 reconnectAttempts = 0;
