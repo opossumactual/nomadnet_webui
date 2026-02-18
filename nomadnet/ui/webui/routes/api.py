@@ -92,11 +92,11 @@ async def websocket_endpoint(websocket: WebSocket):
             if data == "ping":
                 await websocket.send_text(json.dumps({"type": "pong"}))
 
-    except WebSocketDisconnect:
-        RNS.log("WebUI: WebSocket receive loop: client disconnected", RNS.LOG_NOTICE)
+    except WebSocketDisconnect as e:
+        RNS.log(f"WebUI: WebSocket client disconnected (code={e.code})", RNS.LOG_NOTICE)
         await manager.disconnect(websocket)
     except Exception as e:
-        RNS.log(f"WebUI: WebSocket receive loop error: {e}", RNS.LOG_ERROR)
+        RNS.log(f"WebUI: WebSocket receive loop error: {type(e).__name__}: {e}", RNS.LOG_ERROR)
         await manager.disconnect(websocket)
 
 

@@ -50,7 +50,9 @@ class WebUI:
                 host=self.config.bind,
                 port=self.config.port,
                 log_level="warning",
-                access_log=False
+                access_log=False,
+                ws="websockets",
+                ws_per_message_deflate=False,
             )
         except ImportError:
             RNS.log("WebUI requires uvicorn. Install with: pip install uvicorn[standard]", RNS.LOG_ERROR)
