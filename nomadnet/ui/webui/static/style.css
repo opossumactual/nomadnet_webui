@@ -2977,6 +2977,32 @@ select option {
         display: none;
     }
 
+    /* Announce stream: hide hash on mobile so names have room */
+    .announce-hash {
+        display: none;
+    }
+
+    .announce-actions {
+        display: none;
+    }
+
+    .announce-entry {
+        gap: 0.5rem;
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .announce-time {
+        min-width: auto;
+        font-size: 0.65rem;
+    }
+
+    .announce-type {
+        min-width: auto;
+        font-size: 0.6rem;
+        padding: 0.15rem 0.35rem;
+    }
+
     /* Micron content: allow wrapping on mobile, keep pre for ASCII art */
     .micron-page {
         padding: 0.75rem;
