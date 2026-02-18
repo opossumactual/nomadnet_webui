@@ -11,6 +11,30 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _resolve_display_name(app_data, source_hash, directory=None):
+    """Try multiple strategies to resolve a display name from announce data"""
+    # Strategy 1: Parse LXMF app_data
+    if app_data:
+        try:
+            name = LXMF.display_name_from_app_data(app_data)
+            if name:
+                return name
+        except Exception:
+            pass
+
+    # Strategy 2: Check directory entries
+    if directory:
+        try:
+            hash_bytes = source_hash if isinstance(source_hash, bytes) else bytes.fromhex(source_hash)
+            name = directory.display_name(hash_bytes)
+            if name:
+                return name
+        except Exception:
+            pass
+
+    return None
+
+
 def _get_csrf_token(request: Request) -> str:
     """Get CSRF token for the current session"""
     session_manager = request.app.state.session_manager
@@ -30,12 +54,7 @@ async def network_index(request: Request):
     if hasattr(nomad_app, 'directory') and nomad_app.directory:
         for entry in nomad_app.directory.announce_stream[:100]:
             timestamp, source_hash, app_data, announce_type = entry
-            display_name = None
-            if app_data:
-                try:
-                    display_name = LXMF.display_name_from_app_data(app_data)
-                except:
-                    pass
+            display_name = _resolve_display_name(app_data, source_hash, nomad_app.directory)
 
             # Use the announce hash directly - Conversation class handles LXMF internally
             hash_hex = source_hash.hex() if isinstance(source_hash, bytes) else source_hash
@@ -94,10 +113,7 @@ async def get_node_info(request: Request, node_hash: str):
             timestamp, source_hash, app_data, announce_type = announce
             if source_hash == hash_bytes:
                 if app_data and not display_name:
-                    try:
-                        display_name = LXMF.display_name_from_app_data(app_data)
-                    except:
-                        pass
+                    display_name = _resolve_display_name(app_data, source_hash, directory)
                 node_type = announce_type
                 break
 
@@ -157,10 +173,7 @@ async def update_node_settings(request: Request, node_hash: str):
             for announce in directory.announce_stream:
                 timestamp, source_hash, app_data, announce_type = announce
                 if source_hash == hash_bytes and app_data:
-                    try:
-                        display_name = LXMF.display_name_from_app_data(app_data)
-                    except:
-                        pass
+                    display_name = _resolve_display_name(app_data, source_hash, directory)
                     break
 
         # Determine if this is a node (hosts pages) based on announce type

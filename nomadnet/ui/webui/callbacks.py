@@ -35,7 +35,13 @@ class NetworkDisplay:
                     try:
                         import LXMF
                         display_name = LXMF.display_name_from_app_data(app_data)
-                    except:
+                    except Exception:
+                        pass
+                # Fallback: check directory entries
+                if not display_name and self.app.directory:
+                    try:
+                        display_name = self.app.directory.display_name(source_hash)
+                    except Exception:
                         pass
 
                 hash_hex = source_hash.hex() if isinstance(source_hash, bytes) else source_hash

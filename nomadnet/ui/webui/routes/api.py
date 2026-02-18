@@ -100,7 +100,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     try:
                         import LXMF
                         display_name = LXMF.display_name_from_app_data(app_data)
-                    except:
+                    except Exception:
+                        pass
+                # Fallback: check directory entries
+                if not display_name and nomad_app.directory:
+                    try:
+                        display_name = nomad_app.directory.display_name(source_hash)
+                    except Exception:
                         pass
 
                 announces.append({
