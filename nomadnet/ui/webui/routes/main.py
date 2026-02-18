@@ -1,9 +1,31 @@
 import secrets
+from pathlib import Path
 
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
 router = APIRouter()
+
+STATIC_DIR = Path(__file__).parent.parent / "static"
+
+
+@router.get("/sw.js")
+async def service_worker():
+    """Serve service worker from root scope"""
+    return FileResponse(
+        STATIC_DIR / "sw.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/"}
+    )
+
+
+@router.get("/manifest.json")
+async def manifest():
+    """Serve PWA manifest from root"""
+    return FileResponse(
+        STATIC_DIR / "manifest.json",
+        media_type="application/manifest+json"
+    )
 
 
 def _get_csrf_token(request: Request) -> str:

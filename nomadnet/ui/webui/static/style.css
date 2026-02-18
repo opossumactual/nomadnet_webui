@@ -2898,3 +2898,44 @@ select option {
     scrollbar-width: thin;
     scrollbar-color: var(--border-light) var(--bg);
 }
+
+/* ============================================
+   PWA / iOS STANDALONE MODE
+   ============================================ */
+
+@supports (padding-top: env(safe-area-inset-top)) {
+    nav {
+        padding-top: env(safe-area-inset-top);
+        height: calc(48px + env(safe-area-inset-top));
+    }
+
+    #status-bar {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    body {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+}
+
+@media (display-mode: standalone) {
+    html {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    body {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        height: 100%;
+    }
+}
+
+@media (display-mode: standalone) {
+    nav, .nav-brand, .nav-links a {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}

@@ -2,8 +2,21 @@
 <html lang="en" data-theme="signal" data-effect="waveform">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}NomadNet{% endblock %}</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- iOS PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NomadNet">
+    <link rel="apple-touch-icon" href="/static/icons/icon-180.png">
+
+    <!-- Theme color for Android/browsers -->
+    <meta name="theme-color" content="#0f0f0f">
+
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/htmx.min.js"></script>
 </head>
@@ -307,6 +320,17 @@
 
         // Connect on page load
         document.addEventListener('DOMContentLoaded', connectWebSocket);
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(reg) {
+                    console.log('Service worker registered, scope:', reg.scope);
+                })
+                .catch(function(err) {
+                    console.log('Service worker registration failed:', err);
+                });
+        }
 
         // Send ping every 30 seconds to keep connection alive
         setInterval(function() {
