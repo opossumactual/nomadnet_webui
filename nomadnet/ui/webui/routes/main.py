@@ -43,8 +43,8 @@ def _get_cookie_settings(request: Request) -> dict:
         "httponly": True,
         "samesite": "strict",
     }
-    # Only set secure flag if not binding to localhost (assumes HTTPS in production)
-    if config.bind != "127.0.0.1":
+    # Only set secure flag if the request came over HTTPS
+    if request.url.scheme == "https":
         settings["secure"] = True
     return settings
 
