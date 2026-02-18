@@ -55,9 +55,15 @@ def create_app(nomad_app, config: WebUIConfig) -> FastAPI:
     # No-cache and auth middleware
     @app.middleware("http")
     async def middleware(request: Request, call_next):
+        path = request.url.path
+
+        # Skip middleware entirely for WebSocket - it has its own auth
+        if path == "/ws":
+            return await call_next(request)
+
         # Auth check
         if config.requires_auth:
-            if not request.url.path.startswith("/static") and request.url.path != "/login":
+            if not path.startswith("/static") and path != "/login":
                 session_token = request.cookies.get("webui_session")
                 session_manager = app.state.session_manager
                 session = session_manager.validate_session(session_token)
@@ -67,7 +73,7 @@ def create_app(nomad_app, config: WebUIConfig) -> FastAPI:
         response = await call_next(request)
 
         # Prevent Safari from caching HTML pages and service worker
-        if not request.url.path.startswith("/static") or request.url.path.endswith("sw.js"):
+        if not path.startswith("/static") or path.endswith("sw.js"):
             response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             response.headers["Pragma"] = "no-cache"
 

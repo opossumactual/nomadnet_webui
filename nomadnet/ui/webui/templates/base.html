@@ -77,38 +77,22 @@
             return localStorage.getItem('nomadnet-effect') || 'waveform';
         }
 
-        // WebSocket connection with heartbeat for iOS
+        // WebSocket connection for real-time updates
         let ws = null;
         let reconnectAttempts = 0;
         let reconnectTimer = null;
-        let heartbeatTimer = null;
-        let lastMessageTime = 0;
-
-        function forceReconnect() {
-            if (reconnectTimer) {
-                clearTimeout(reconnectTimer);
-                reconnectTimer = null;
-            }
-            if (ws) {
-                ws.onclose = null;
-                ws.close();
-                ws = null;
-            }
-            reconnectAttempts = 0;
-            connectWebSocket();
-        }
 
         function connectWebSocket() {
+            // Cancel any pending reconnect
             if (reconnectTimer) {
                 clearTimeout(reconnectTimer);
                 reconnectTimer = null;
             }
 
-            if (ws) {
-                ws.onclose = null;
-                ws.close();
-                ws = null;
-            }
+            // Skip if already connected
+            if (ws && ws.readyState === WebSocket.OPEN) return;
+            // Skip if currently connecting
+            if (ws && ws.readyState === WebSocket.CONNECTING) return;
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
@@ -117,12 +101,12 @@
                 document.getElementById('connection-status').className = 'status-connected';
                 document.getElementById('connection-status').textContent = 'Connected';
                 reconnectAttempts = 0;
-                lastMessageTime = Date.now();
             };
 
             ws.onclose = function() {
                 document.getElementById('connection-status').className = 'status-disconnected';
                 document.getElementById('connection-status').textContent = 'Disconnected';
+                ws = null;
                 reconnectAttempts++;
                 var delay = Math.min(2000 * reconnectAttempts, 30000);
                 reconnectTimer = setTimeout(connectWebSocket, delay);
@@ -133,7 +117,6 @@
             };
 
             ws.onmessage = function(event) {
-                lastMessageTime = Date.now();
                 try {
                     const data = JSON.parse(event.data);
                     handleWebSocketMessage(data);
@@ -142,27 +125,6 @@
                 }
             };
         }
-
-        // Always force fresh connection when returning to app/tab
-        // iOS leaves WebSocket in zombie state with readyState still OPEN
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
-                forceReconnect();
-            }
-        });
-
-        // Heartbeat: send ping every 15s, force reconnect if no response in 20s
-        heartbeatTimer = setInterval(function() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                // If no message received in 20s, connection is dead
-                if (Date.now() - lastMessageTime > 20000) {
-                    console.log('Heartbeat timeout - reconnecting');
-                    forceReconnect();
-                    return;
-                }
-                ws.send('ping');
-            }
-        }, 15000);
 
         // Custom message handler registry - pages can register handlers for specific event types
         var wsMessageHandlers = {};
@@ -377,7 +339,12 @@
                 });
         }
 
-        // Ping interval is handled by heartbeat timer above
+        // Send ping every 15 seconds to keep connection alive
+        setInterval(function() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('ping');
+            }
+        }, 15000);
     </script>
 </body>
 </html>
