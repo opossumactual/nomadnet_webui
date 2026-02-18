@@ -1,5 +1,6 @@
 import os
 import time
+import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -85,5 +86,11 @@ def create_app(nomad_app, config: WebUIConfig) -> FastAPI:
 
     # Store the connection manager for use in callbacks
     app.state.ws_manager = api.get_manager()
+
+    # Capture uvicorn's event loop at startup so broadcast_sync works
+    # before any WebSocket client connects
+    @app.on_event("startup")
+    async def capture_event_loop():
+        app.state.ws_manager._loop = asyncio.get_running_loop()
 
     return app
