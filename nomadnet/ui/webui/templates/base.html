@@ -77,21 +77,30 @@
             return localStorage.getItem('nomadnet-effect') || 'waveform';
         }
 
-        // WebSocket connection for real-time updates
+        // Real-time updates: WebSocket with polling fallback
         let ws = null;
         let reconnectAttempts = 0;
         let reconnectTimer = null;
+        let pollingTimer = null;
+        let usePolling = false;
+        let wsFailCount = 0;
 
         function connectWebSocket() {
-            // Cancel any pending reconnect
             if (reconnectTimer) {
                 clearTimeout(reconnectTimer);
                 reconnectTimer = null;
             }
 
-            // Skip if already connected
+            // After 3 failed WebSocket attempts, switch to polling
+            if (wsFailCount >= 3) {
+                if (!usePolling) {
+                    usePolling = true;
+                    startPolling();
+                }
+                return;
+            }
+
             if (ws && ws.readyState === WebSocket.OPEN) return;
-            // Skip if currently connecting
             if (ws && ws.readyState === WebSocket.CONNECTING) return;
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -101,12 +110,16 @@
                 document.getElementById('connection-status').className = 'status-connected';
                 document.getElementById('connection-status').textContent = 'Connected';
                 reconnectAttempts = 0;
+                wsFailCount = 0;
+                usePolling = false;
+                stopPolling();
             };
 
             ws.onclose = function() {
                 document.getElementById('connection-status').className = 'status-disconnected';
-                document.getElementById('connection-status').textContent = 'Disconnected';
+                document.getElementById('connection-status').textContent = 'Polling';
                 ws = null;
+                wsFailCount++;
                 reconnectAttempts++;
                 var delay = Math.min(2000 * reconnectAttempts, 30000);
                 reconnectTimer = setTimeout(connectWebSocket, delay);
@@ -124,6 +137,40 @@
                     console.error('Failed to parse WebSocket message:', e);
                 }
             };
+        }
+
+        // Polling fallback for browsers where WebSocket is unreliable
+        function startPolling() {
+            if (pollingTimer) return;
+            document.getElementById('connection-status').className = 'status-connected';
+            document.getElementById('connection-status').textContent = 'Polling';
+            pollForUpdates();
+            pollingTimer = setInterval(pollForUpdates, 5000);
+        }
+
+        function stopPolling() {
+            if (pollingTimer) {
+                clearInterval(pollingTimer);
+                pollingTimer = null;
+            }
+        }
+
+        var lastAnnounceCount = -1;
+        function pollForUpdates() {
+            fetch('/api/updates')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.announces && data.announces.length !== lastAnnounceCount) {
+                        lastAnnounceCount = data.announces.length;
+                        updateAnnounceStream(data.announces);
+                    }
+                    if (typeof data.unread_count !== 'undefined') {
+                        updateUnreadBadge(data.unread_count);
+                    }
+                })
+                .catch(function(e) {
+                    console.error('Poll error:', e);
+                });
         }
 
         // Custom message handler registry - pages can register handlers for specific event types

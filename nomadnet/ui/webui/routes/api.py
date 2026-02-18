@@ -2,7 +2,8 @@ import json
 import asyncio
 import logging
 from typing import Set
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from starlette.websockets import WebSocketState
 import RNS
 import LXMF
@@ -103,3 +104,35 @@ async def websocket_endpoint(websocket: WebSocket):
 def get_manager() -> ConnectionManager:
     """Get the global connection manager"""
     return manager
+
+
+@router.get("/api/updates")
+async def get_updates(request: Request):
+    """Polling endpoint for browsers where WebSocket is unreliable"""
+    nomad_app = request.app.state.nomad_app
+    result = {}
+
+    # Announce stream
+    if hasattr(nomad_app, 'directory') and nomad_app.directory:
+        from .network import _resolve_display_name
+        announces = []
+        for entry in nomad_app.directory.announce_stream[:50]:
+            timestamp, source_hash, app_data, announce_type = entry
+            display_name = _resolve_display_name(app_data, source_hash, nomad_app.directory)
+            announces.append({
+                "timestamp": timestamp,
+                "hash": source_hash.hex() if isinstance(source_hash, bytes) else source_hash,
+                "name": display_name,
+                "type": announce_type
+            })
+        result["announces"] = announces
+
+    # Unread count
+    try:
+        from nomadnet.Conversation import Conversation
+        conv_list = Conversation.conversation_list(nomad_app)
+        result["unread_count"] = sum(1 for c in conv_list if c[4])
+    except Exception:
+        result["unread_count"] = 0
+
+    return JSONResponse(result)
