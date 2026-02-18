@@ -31,22 +31,10 @@ class NetworkDisplay:
             for entry in self.app.directory.announce_stream[:50]:
                 timestamp, source_hash, app_data, announce_type = entry
                 display_name = None
-                # Try directory entries first (most reliable)
-                if self.app.directory:
+                if app_data:
                     try:
-                        h = source_hash if isinstance(source_hash, bytes) else (bytes.fromhex(source_hash) if isinstance(source_hash, str) else source_hash)
-                        entry = self.app.directory.directory_entries.get(h)
-                        if entry and entry.display_name:
-                            display_name = entry.display_name
-                    except Exception:
-                        pass
-                # Fallback: parse LXMF app_data
-                if not display_name and app_data:
-                    try:
-                        import LXMF
-                        raw = app_data.encode('utf-8') if isinstance(app_data, str) else app_data
-                        display_name = LXMF.display_name_from_app_data(raw)
-                    except Exception:
+                        display_name = app_data.decode('utf-8')
+                    except:
                         pass
 
                 hash_hex = source_hash.hex() if isinstance(source_hash, bytes) else source_hash
