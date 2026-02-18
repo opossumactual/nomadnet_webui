@@ -25,8 +25,6 @@ class NetworkDisplay:
 
     def directory_change_callback(self):
         """Called when the announce stream changes"""
-        import RNS
-        RNS.log("WebUI: directory_change_callback FIRED", RNS.LOG_NOTICE)
         # Get the latest announces
         announces = []
         if hasattr(self.app, 'directory') and self.app.directory:
@@ -177,13 +175,6 @@ def setup_callbacks(webui, manager: "ConnectionManager"):
 
     # Create the callback bridge
     webui.main_display = MainDisplay(manager, webui.app)
-
-    # Verify callback chain is connected
-    RNS.log(f"WebUI: app.ui = {webui.app.ui}", RNS.LOG_INFO)
-    RNS.log(f"WebUI: app.ui.main_display = {webui.main_display}", RNS.LOG_INFO)
-    RNS.log(f"WebUI: hasattr(app, 'ui') = {hasattr(webui.app, 'ui')}", RNS.LOG_INFO)
-    RNS.log(f"WebUI: hasattr(app.ui, 'main_display') = {hasattr(webui.app.ui, 'main_display')}", RNS.LOG_INFO)
-    RNS.log(f"WebUI: network_display = {webui.main_display.sub_displays.network_display}", RNS.LOG_INFO)
 
     # Register conversation created callback
     nomadnet.Conversation.created_callback = webui.main_display.sub_displays.conversations_display.update_conversation_list

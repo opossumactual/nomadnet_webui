@@ -15,13 +15,9 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
         self._lock = asyncio.Lock()
-        self._loop = None  # Will be set to the uvicorn event loop
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        # Capture the event loop on first connection
-        if self._loop is None:
-            self._loop = asyncio.get_running_loop()
         async with self._lock:
             self.active_connections.add(websocket)
 
@@ -44,22 +40,29 @@ class ConnectionManager:
             self.active_connections -= dead_connections
 
     def broadcast_sync(self, event_type: str, data: dict):
-        """Synchronous wrapper for broadcasting (called from non-async code like Reticulum threads)"""
-        import RNS
+        """Synchronous wrapper for broadcasting (called from non-async code)"""
         try:
-            conns = len(self.active_connections)
-            if self._loop and self._loop.is_running():
-                RNS.log(f"WebUI: broadcast_sync {event_type} to {conns} clients via stored loop", RNS.LOG_DEBUG)
-                asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), self._loop)
-            else:
-                RNS.log(f"WebUI: broadcast_sync {event_type} - no stored loop (loop={self._loop})", RNS.LOG_WARNING)
+            # Use get_running_loop() which is the modern, recommended approach
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context, schedule the coroutine
+                asyncio.ensure_future(self.broadcast(event_type, data), loop=loop)
+            except RuntimeError:
+                # No running loop - we're in a sync context
+                # Try to get the event loop for this thread
                 try:
-                    loop = asyncio.get_running_loop()
-                    asyncio.ensure_future(self.broadcast(event_type, data), loop=loop)
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Loop exists and is running in another thread
+                        asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), loop)
+                    else:
+                        # Loop exists but not running
+                        loop.run_until_complete(self.broadcast(event_type, data))
                 except RuntimeError:
-                    RNS.log(f"WebUI: broadcast_sync {event_type} - no running loop either", RNS.LOG_WARNING)
+                    # No event loop at all, create a new one
+                    asyncio.run(self.broadcast(event_type, data))
         except Exception as e:
-            RNS.log(f"WebUI: broadcast_sync failed: {e}", RNS.LOG_ERROR)
+            logger.warning(f"Failed to broadcast {event_type}: {e}")
 
 
 # Global connection manager instance
