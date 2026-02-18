@@ -21,19 +21,26 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.add(websocket)
+        RNS.log(f"WebUI: WebSocket connected (total: {len(self.active_connections)})", RNS.LOG_NOTICE)
 
     async def disconnect(self, websocket: WebSocket):
         self.active_connections.discard(websocket)
+        RNS.log(f"WebUI: WebSocket disconnected (total: {len(self.active_connections)})", RNS.LOG_NOTICE)
 
     async def broadcast(self, event_type: str, data: dict):
         """Broadcast an event to all connected clients"""
         message = json.dumps({"type": event_type, **data})
+        connections = set(self.active_connections)
+        RNS.log(f"WebUI: broadcasting '{event_type}' to {len(connections)} clients", RNS.LOG_DEBUG)
         dead_connections = set()
-        for connection in set(self.active_connections):  # iterate over copy
+        for connection in connections:
             try:
                 await connection.send_text(message)
-            except Exception:
+            except Exception as e:
+                RNS.log(f"WebUI: send failed to client: {e}", RNS.LOG_WARNING)
                 dead_connections.add(connection)
+        if dead_connections:
+            RNS.log(f"WebUI: removed {len(dead_connections)} dead connections", RNS.LOG_DEBUG)
         self.active_connections -= dead_connections
 
     def _on_broadcast_done(self, event_type, future):
