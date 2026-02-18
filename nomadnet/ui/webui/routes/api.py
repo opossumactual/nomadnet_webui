@@ -45,18 +45,21 @@ class ConnectionManager:
 
     def broadcast_sync(self, event_type: str, data: dict):
         """Synchronous wrapper for broadcasting (called from non-async code like Reticulum threads)"""
+        import RNS
         try:
+            conns = len(self.active_connections)
             if self._loop and self._loop.is_running():
+                RNS.log(f"WebUI: broadcast_sync {event_type} to {conns} clients via stored loop", RNS.LOG_DEBUG)
                 asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), self._loop)
             else:
-                # Fallback: try to get any running loop
+                RNS.log(f"WebUI: broadcast_sync {event_type} - no stored loop (loop={self._loop})", RNS.LOG_WARNING)
                 try:
                     loop = asyncio.get_running_loop()
                     asyncio.ensure_future(self.broadcast(event_type, data), loop=loop)
                 except RuntimeError:
-                    pass
+                    RNS.log(f"WebUI: broadcast_sync {event_type} - no running loop either", RNS.LOG_WARNING)
         except Exception as e:
-            logger.warning(f"Failed to broadcast {event_type}: {e}")
+            RNS.log(f"WebUI: broadcast_sync failed: {e}", RNS.LOG_ERROR)
 
 
 # Global connection manager instance
