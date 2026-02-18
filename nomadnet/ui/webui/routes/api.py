@@ -16,40 +16,38 @@ class ConnectionManager:
 
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
-        self._lock = asyncio.Lock()
         self._loop = None  # Store uvicorn's event loop for cross-thread broadcasting
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        # Capture the running event loop (uvicorn's loop) so broadcast_sync
-        # can schedule coroutines from Reticulum's transport thread
-        self._loop = asyncio.get_running_loop()
-        async with self._lock:
-            self.active_connections.add(websocket)
+        self.active_connections.add(websocket)
 
     async def disconnect(self, websocket: WebSocket):
-        async with self._lock:
-            self.active_connections.discard(websocket)
+        self.active_connections.discard(websocket)
 
     async def broadcast(self, event_type: str, data: dict):
         """Broadcast an event to all connected clients"""
         message = json.dumps({"type": event_type, **data})
-        async with self._lock:
-            dead_connections = set()
-            for connection in self.active_connections:
-                try:
-                    await connection.send_text(message)
-                except Exception:
-                    dead_connections.add(connection)
+        dead_connections = set()
+        for connection in set(self.active_connections):  # iterate over copy
+            try:
+                await connection.send_text(message)
+            except Exception:
+                dead_connections.add(connection)
+        self.active_connections -= dead_connections
 
-            # Clean up dead connections
-            self.active_connections -= dead_connections
+    def _on_broadcast_done(self, event_type, future):
+        """Log errors from broadcast futures"""
+        try:
+            future.result()
+        except Exception as e:
+            RNS.log(f"WebUI: broadcast '{event_type}' failed: {e}", RNS.LOG_ERROR)
 
     def broadcast_sync(self, event_type: str, data: dict):
         """Synchronous wrapper for broadcasting (called from Reticulum's transport thread)"""
-        RNS.log(f"WebUI: broadcast_sync called: {event_type} (loop={self._loop is not None}, connections={len(self.active_connections)})", RNS.LOG_DEBUG)
         if self._loop is not None and self._loop.is_running():
-            asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), self._loop)
+            future = asyncio.run_coroutine_threadsafe(self.broadcast(event_type, data), self._loop)
+            future.add_done_callback(lambda f: self._on_broadcast_done(event_type, f))
         else:
             RNS.log(f"WebUI: No event loop available to broadcast {event_type}", RNS.LOG_WARNING)
 
