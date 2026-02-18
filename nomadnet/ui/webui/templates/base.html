@@ -80,11 +80,21 @@
         // WebSocket connection for real-time updates
         let ws = null;
         let reconnectAttempts = 0;
+        let reconnectTimer = null;
 
         function connectWebSocket() {
+            // Cancel any pending reconnect timer to prevent cascading calls
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+
+            // Don't reconnect if already open
+            if (ws && ws.readyState === WebSocket.OPEN) return;
+
             // Clean up any existing connection
             if (ws) {
-                ws.onclose = null;  // Prevent old onclose from firing
+                ws.onclose = null;
                 ws.close();
                 ws = null;
             }
@@ -104,10 +114,10 @@
                 document.getElementById('connection-status').className = 'status-disconnected';
                 document.getElementById('connection-status').textContent = 'Disconnected';
 
-                // Always attempt to reconnect with backoff (cap at 30s)
+                // Schedule ONE reconnect with backoff (cap at 30s)
                 reconnectAttempts++;
                 var delay = Math.min(2000 * reconnectAttempts, 30000);
-                setTimeout(connectWebSocket, delay);
+                reconnectTimer = setTimeout(connectWebSocket, delay);
             };
 
             ws.onerror = function(error) {
@@ -124,9 +134,9 @@
             };
         }
 
-        // Force fresh reconnect when app/tab becomes visible
+        // Reconnect when app/tab becomes visible, but only if not already connected
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
+            if (!document.hidden && (!ws || ws.readyState !== WebSocket.OPEN)) {
                 reconnectAttempts = 0;
                 connectWebSocket();
             }
